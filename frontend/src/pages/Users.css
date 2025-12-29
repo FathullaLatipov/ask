@@ -1,0 +1,91 @@
+.users-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-select {
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.table-head {
+  display: grid;
+  grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 120px 120px;
+  gap: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 120px 120px;
+  gap: 16px;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.role-employee {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.role-manager {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.role-admin {
+  background: #fce7f3;
+  color: #9f1239;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+

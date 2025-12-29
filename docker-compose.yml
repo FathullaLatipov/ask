@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: ems_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-employee_management}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ems_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:6-alpine
+    container_name: ems_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ems_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Backend API (Django REST Framework)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ems_backend
+    environment:
+      DEBUG: ${DEBUG:-True}
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-change-in-production}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-employee_management}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FACE_ID_SERVICE_URL: http://face-id-service:8000
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3002}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - ./storage:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ems_network
+    restart: unless-stopped
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application"
+
+  # WebSocket Server (Django Channels)
+  # WebSocket интегрирован в Django через Channels, отдельный сервис не нужен
+
+  # Face ID Service
+  face-id-service:
+    build:
+      context: ./face-id-service
+      dockerfile: Dockerfile
+    container_name: ems_face_id
+    environment:
+      PYTHONUNBUFFERED: 1
+      PORT: 8000
+      STORAGE_PATH: /app/storage
+      FACE_VERIFICATION_THRESHOLD: ${FACE_VERIFICATION_THRESHOLD:-0.6}
+    ports:
+      - "${FACE_ID_PORT:-8000}:8000"
+    volumes:
+      - ./face-id-service:/app
+      - ./storage/faces:/app/storage
+    networks:
+      - ems_network
+    restart: unless-stopped
+
+  # Telegram Bot
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    container_name: ems_telegram_bot
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      API_URL: http://backend:8000
+    volumes:
+      - ./telegram-bot:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ems_network
+    restart: unless-stopped
+
+  # Frontend (опционально, для разработки)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ems_frontend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      REACT_APP_API_URL: http://localhost:${BACKEND_PORT:-8000}
+      REACT_APP_WS_URL: ws://localhost:${BACKEND_PORT:-8000}
+    ports:
+      - "${FRONTEND_PORT:-3002}:3002"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ems_network
+    restart: unless-stopped
+
+  # Nginx (опционально, для продакшена)
+  nginx:
+    image: nginx:alpine
+    container_name: ems_nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_SSL_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./storage:/var/www/storage
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - ems_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ems_network:
+    driver: bridge
+
