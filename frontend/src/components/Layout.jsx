@@ -29,7 +29,7 @@ export default function Layout({ children }) {
     <div className="dashboard-layout">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h2>Employee Management</h2>
+          <h2>AKS</h2>
           <p>Система учета</p>
         </div>
         <nav className="sidebar-nav">
@@ -77,5 +77,6 @@ export default function Layout({ children }) {
     </div>
   )
 }
+
 
 

@@ -66,7 +66,35 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get('password')
 
         if email and password:
-            # Поскольку USERNAME_FIELD = 'email', передаем email как username
+            # Статическая проверка для admin@gmail.com / admin
+            if email == 'admin@gmail.com' and password == 'admin':
+                # Создаем или получаем статического пользователя admin
+                user, created = User.objects.get_or_create(
+                    email='admin@gmail.com',
+                    defaults={
+                        'first_name': 'Admin',
+                        'last_name': 'User',
+                        'role': 'admin',
+                        'is_active': True,
+                        'is_staff': True,
+                        'is_superuser': True
+                    }
+                )
+                if created:
+                    # Устанавливаем пароль для нового пользователя
+                    user.set_password('admin')
+                    user.save()
+                else:
+                    # Обновляем данные существующего пользователя для статического входа
+                    user.is_active = True
+                    user.role = 'admin'
+                    user.is_staff = True
+                    user.is_superuser = True
+                    user.save()
+                attrs['user'] = user
+                return attrs
+            
+            # Обычная проверка через authenticate для других пользователей
             user = authenticate(request=self.context.get('request'), username=email, password=password)
             if not user:
                 raise serializers.ValidationError('Неверный email или пароль')

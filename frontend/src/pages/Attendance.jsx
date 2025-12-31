@@ -25,7 +25,7 @@ export default function Attendance() {
     try {
       const [statusRes, historyRes, activeRes] = await Promise.allSettled([
         api.get('/api/attendance/current/'),
-        api.get('/api/attendance/history/?limit=20'),
+        api.get('/api/attendance/?limit=20'),
         api.get('/api/attendance/active/'),
       ])
 
@@ -34,12 +34,32 @@ export default function Attendance() {
       }
 
       if (historyRes.status === 'fulfilled') {
-        const data = historyRes.value.data?.data || historyRes.value.data || []
+        // Обрабатываем разные форматы ответа
+        let data = []
+        if (historyRes.value.data) {
+          if (Array.isArray(historyRes.value.data)) {
+            data = historyRes.value.data
+          } else if (historyRes.value.data.results) {
+            data = historyRes.value.data.results
+          } else if (historyRes.value.data.data) {
+            data = historyRes.value.data.data
+          }
+        }
         setHistory(data)
       }
 
       if (activeRes.status === 'fulfilled') {
-        const data = activeRes.value.data?.data || activeRes.value.data || []
+        // Обрабатываем разные форматы ответа
+        let data = []
+        if (activeRes.value.data) {
+          if (Array.isArray(activeRes.value.data)) {
+            data = activeRes.value.data
+          } else if (activeRes.value.data.results) {
+            data = activeRes.value.data.results
+          } else if (activeRes.value.data.data) {
+            data = activeRes.value.data.data
+          }
+        }
         setActiveUsers(data)
       }
     } catch (err) {
@@ -204,5 +224,6 @@ export default function Attendance() {
     </div>
   )
 }
+
 
 

@@ -22,7 +22,17 @@ export default function Salary() {
 
     try {
       const res = await api.get('/api/salary/')
-      const data = res.data?.data || res.data || []
+      // Обрабатываем разные форматы ответа
+      let data = []
+      if (res.data) {
+        if (Array.isArray(res.data)) {
+          data = res.data
+        } else if (res.data.results) {
+          data = res.data.results
+        } else if (res.data.data) {
+          data = res.data.data
+        }
+      }
       setCalculations(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err.response?.data?.detail || 'Ошибка загрузки данных')
@@ -91,7 +101,7 @@ export default function Salary() {
               <span>Сотрудник</span>
               <span>Период</span>
               <span>Отработано часов</span>
-              <span>Базовая ЗП</span>
+              <span>Базовая сумма</span>
               <span>Штрафы</span>
               <span>Итого</span>
             </div>
@@ -102,10 +112,10 @@ export default function Salary() {
                   {calc.user?.first_name} {calc.user?.last_name}
                 </span>
                 <span>{calc.period || '—'}</span>
-                <span>{calc.total_hours || 0}</span>
-                <span>{calc.base_salary || 0} ₽</span>
-                <span className={calc.penalties > 0 ? 'penalty' : ''}>
-                  {calc.penalties || 0} ₽
+                <span>{calc.base_hours || 0}</span>
+                <span>{calc.base_amount || 0} ₽</span>
+                <span className={calc.penalties_amount > 0 ? 'penalty' : ''}>
+                  {calc.penalties_amount || 0} ₽
                 </span>
                 <span className="total">{calc.total_amount || 0} ₽</span>
               </div>
@@ -118,5 +128,6 @@ export default function Salary() {
     </div>
   )
 }
+
 
 

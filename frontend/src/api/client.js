@@ -7,10 +7,23 @@ export const createApiClient = (token) => {
     baseURL: API_BASE_URL,
     headers: token
       ? {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Token ${token}`,
         }
       : {},
   })
+
+  // Добавляем interceptor для автоматической обработки ошибок
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        // Токен недействителен, удаляем его
+        removeToken()
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
+    }
+  )
 
   return instance
 }
@@ -18,5 +31,6 @@ export const createApiClient = (token) => {
 export const getToken = () => localStorage.getItem('token') || ''
 export const setToken = (token) => localStorage.setItem('token', token)
 export const removeToken = () => localStorage.removeItem('token')
+
 
 
