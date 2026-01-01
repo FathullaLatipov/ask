@@ -29,6 +29,13 @@ export default function Dashboard() {
   const [attendanceData, setAttendanceData] = useState([])
   const [departmentData, setDepartmentData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState([])
+  const [requests, setRequests] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterRole, setFilterRole] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
+  const [showUsersTable, setShowUsersTable] = useState(true)
+  const [showRequestsTable, setShowRequestsTable] = useState(true)
 
   useEffect(() => {
     fetchDashboardData()
@@ -63,8 +70,9 @@ export default function Dashboard() {
       }
 
       if (usersRes.status === 'fulfilled') {
-        const users = extractData(usersRes.value.data)
-        setStats((s) => ({ ...s, totalUsers: users.length }))
+        const usersData = extractData(usersRes.value.data)
+        setUsers(usersData)
+        setStats((s) => ({ ...s, totalUsers: usersData.length }))
       }
 
       if (activeRes.status === 'fulfilled') {
@@ -78,8 +86,9 @@ export default function Dashboard() {
       }
 
       if (requestsRes.status === 'fulfilled') {
-        const requests = extractData(requestsRes.value.data)
-        const pending = requests.filter((r) => r.status === 'pending')
+        const requestsData = extractData(requestsRes.value.data)
+        setRequests(requestsData)
+        const pending = requestsData.filter((r) => r.status === 'pending')
         setStats((s) => ({ ...s, pendingRequests: pending.length }))
       }
 
@@ -113,21 +122,32 @@ export default function Dashboard() {
         const depts = extractData(deptsListRes.value.data)
         const users = extractData(usersRes.value.data)
         
-        // Подсчитываем сотрудников по отделам
-        const deptCounts = {}
-        users.forEach((user) => {
-          if (user.department) {
-            const deptId = typeof user.department === 'object' ? user.department.id : user.department
-            const deptName = typeof user.department === 'object' ? user.department.name : 
-              depts.find(d => d.id === deptId)?.name || 'Без отдела'
-            deptCounts[deptName] = (deptCounts[deptName] || 0) + 1
+        // Подсчитываем сотрудников по отделам - правильный способ
+        const chartData = depts.map(dept => {
+          // Считаем сотрудников в этом отделе
+          const count = users.filter(user => {
+            if (!user.department) return false
+            // Проверяем, соответствует ли отдел пользователя текущему отделу
+            const userDeptId = typeof user.department === 'object' 
+              ? user.department.id 
+              : user.department
+            return userDeptId === dept.id
+          }).length
+          
+          return {
+            name: dept.name,
+            value: count
           }
         })
         
-        const chartData = Object.entries(deptCounts)
-          .map(([name, value]) => ({ name, value }))
-          .slice(0, 5)
-        setDepartmentData(chartData)
+        // Показываем все отделы, даже если в них нет сотрудников
+        // Для отделов без сотрудников ставим минимальное значение для визуализации
+        const finalChartData = chartData.map(item => ({
+          ...item,
+          value: item.value > 0 ? item.value : 1 // Минимальное значение для отображения
+        }))
+        
+        setDepartmentData(finalChartData)
       }
     } catch (err) {
       console.error('Ошибка загрузки данных:', err)
@@ -140,6 +160,22 @@ export default function Dashboard() {
       setLoading(false)
     }
   }
+
+  // Фильтрация пользователей
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = !searchQuery || 
+      `${user.first_name} ${user.last_name} ${user.email || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = !filterRole || user.role === filterRole
+    return matchesSearch && matchesRole
+  })
+
+  // Фильтрация заявок
+  const filteredRequests = requests.filter((req) => {
+    const matchesSearch = !searchQuery || 
+      `${req.user?.first_name || ''} ${req.user?.last_name || ''} ${req.reason || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = !filterStatus || req.status === filterStatus
+    return matchesSearch && matchesStatus
+  })
 
   const statCards = [
     { label: 'Всего сотрудников', value: stats.totalUsers, icon: '👥', color: '#3b82f6' },
@@ -197,8 +233,13 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name }) => name}
-                  outerRadius={80}
+                  label={({ name, value, percent }) => {
+                    // Показываем название и процент для всех отделов
+                    const realValue = value === 1 && departmentData.find(d => d.name === name)?.value === 0 ? 0 : value
+                    if (realValue === 0) return `${name} (0)`
+                    return `${name}: ${Math.round(percent * 100)}%`
+                  }}
+                  outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -206,7 +247,14 @@ export default function Dashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    const entry = departmentData.find(d => d.name === name)
+                    const realValue = entry && entry.value === 0 && value === 1 ? 0 : value
+                    return [realValue === 0 ? 'Нет сотрудников' : `${realValue} сотрудников`, name]
+                  }}
+                />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -246,6 +294,161 @@ export default function Dashboard() {
             Кнопки "Редактировать" и "Удалить" доступны в таблицах для управления существующими данными.
           </p>
         </div>
+      </div>
+
+      {/* Поиск и фильтры */}
+      <div className="card">
+        <div className="search-filters">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Поиск по имени, email, причине..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          <div className="filters-row">
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Все роли</option>
+              <option value="employee">Сотрудник</option>
+              <option value="manager">Менеджер</option>
+              <option value="admin">Администратор</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">Все статусы</option>
+              <option value="pending">На рассмотрении</option>
+              <option value="approved">Утверждена</option>
+              <option value="rejected">Отклонена</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Таблица сотрудников */}
+      <div className="card">
+        <div className="table-header">
+          <h3>Сотрудники ({filteredUsers.length})</h3>
+          <button 
+            className="toggle-btn" 
+            onClick={() => setShowUsersTable(!showUsersTable)}
+          >
+            {showUsersTable ? 'Скрыть' : 'Показать'}
+          </button>
+        </div>
+        {showUsersTable && (
+          <div className="table-container">
+            {loading ? (
+              <div className="placeholder">Загрузка...</div>
+            ) : filteredUsers.length > 0 ? (
+              <div className="table">
+                <div className="table-head">
+                  <span>ID</span>
+                  <span>Имя</span>
+                  <span>Email</span>
+                  <span>Отдел</span>
+                  <span>Должность</span>
+                  <span>Роль</span>
+                  <span>Статус</span>
+                </div>
+                {filteredUsers.slice(0, 10).map((user) => (
+                  <div key={user.id} className="table-row">
+                    <span>{user.id}</span>
+                    <span>{user.first_name} {user.last_name}</span>
+                    <span>{user.email || '—'}</span>
+                    <span>{typeof user.department === 'object' ? user.department?.name : '—'}</span>
+                    <span>{user.position || '—'}</span>
+                    <span>
+                      <span className={`role-badge role-${user.role}`}>{user.role}</span>
+                    </span>
+                    <span>
+                      <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
+                        {user.is_active ? 'Активен' : 'Неактивен'}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="placeholder">Нет сотрудников</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Таблица заявок */}
+      <div className="card">
+        <div className="table-header">
+          <h3>Заявки ({filteredRequests.length})</h3>
+          <button 
+            className="toggle-btn" 
+            onClick={() => setShowRequestsTable(!showRequestsTable)}
+          >
+            {showRequestsTable ? 'Скрыть' : 'Показать'}
+          </button>
+        </div>
+        {showRequestsTable && (
+          <div className="table-container">
+            {loading ? (
+              <div className="placeholder">Загрузка...</div>
+            ) : filteredRequests.length > 0 ? (
+              <div className="table">
+                <div className="table-head">
+                  <span>ID</span>
+                  <span>Тип</span>
+                  <span>Сотрудник</span>
+                  <span>Дата начала</span>
+                  <span>Дата окончания</span>
+                  <span>Статус</span>
+                </div>
+                {filteredRequests.slice(0, 10).map((req) => {
+                  const getTypeLabel = (type) => {
+                    const types = {
+                      vacation: 'Отпуск',
+                      sick_leave: 'Больничный',
+                      advance: 'Аванс',
+                      day_off: 'Выходной'
+                    }
+                    return types[type] || type
+                  }
+                  const getStatusBadge = (status) => {
+                    const badges = {
+                      pending: { class: 'pending', label: 'На рассмотрении' },
+                      approved: { class: 'approved', label: 'Утверждена' },
+                      rejected: { class: 'rejected', label: 'Отклонена' },
+                    }
+                    return badges[status] || { class: '', label: status }
+                  }
+                  const statusBadge = getStatusBadge(req.status)
+                  return (
+                    <div key={req.id} className="table-row">
+                      <span>{req.id}</span>
+                      <span>{getTypeLabel(req.request_type)}</span>
+                      <span>{req.user?.first_name} {req.user?.last_name}</span>
+                      <span>{req.start_date || '—'}</span>
+                      <span>{req.end_date || '—'}</span>
+                      <span>
+                        <span className={`status-badge ${statusBadge.class}`}>
+                          {statusBadge.label}
+                        </span>
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="placeholder">Нет заявок</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

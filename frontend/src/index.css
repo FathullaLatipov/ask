@@ -17,8 +17,146 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 #root {
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Common responsive styles */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .page-header h2 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h2 {
+    font-size: 18px;
+  }
+  
+  /* Prevent pull-to-refresh and horizontal bounce on mobile */
+  html,
+  body {
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  
+  /* Prevent horizontal scrolling */
+  * {
+    max-width: 100%;
+  }
+}
+
+/* Touch-friendly styles for mobile */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html,
+  body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+    touch-action: pan-y;
+  }
+  
+  button,
+  .btn,
+  .btn-small,
+  a,
+  .nav-item {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    touch-action: manipulation;
+  }
+  
+  .table-container {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    touch-action: pan-x;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    position: relative;
+  }
+  
+  .table-container::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  
+  /* Prevent unwanted scrolling */
+  .dashboard-layout,
+  .dashboard-main,
+  .dashboard-content {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+  
+  /* Improve touch targets */
+  .card,
+  .stat-card,
+  .chart-card {
+    touch-action: manipulation;
+  }
+  
+  /* Prevent text selection on buttons */
+  button,
+  .btn {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 }

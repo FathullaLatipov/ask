@@ -43,6 +43,13 @@
   border-bottom: 1px solid #e2e8f0;
   font-size: 14px;
   color: #475569;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.table-row:hover {
+  background: #f8fafc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .table-row:last-child {
@@ -58,6 +65,74 @@
   color: #10b981;
   font-weight: 600;
 }
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .salary-page {
+    gap: 16px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .calculate-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .input {
+    width: 100%;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    width: 100%;
+  }
+  
+  .table-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  .table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .table {
+    min-width: 700px;
+  }
+  
+  .table-head,
+  .table-row {
+    grid-template-columns: 40px 1.2fr 0.8fr 1fr 0.8fr 0.8fr 1fr;
+    gap: 8px;
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-head,
+  .table-row {
+    grid-template-columns: 30px 1fr 0.7fr 0.8fr 0.7fr 0.7fr 0.9fr;
+    gap: 6px;
+    padding: 6px;
+    font-size: 11px;
+  }
+}
+
 
 
 

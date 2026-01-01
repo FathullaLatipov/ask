@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createApiClient, getToken } from '../api/client'
+import ConfirmModal from '../components/ConfirmModal'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 import './Departments.css'
 
@@ -17,6 +18,7 @@ export default function Departments() {
     description: '',
     manager: ''
   })
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, deptId: null, deptName: '' })
 
   useEffect(() => {
     fetchData()
@@ -86,8 +88,13 @@ export default function Departments() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Вы уверены, что хотите удалить этот отдел?')) return
+  const handleDeleteClick = (id, name) => {
+    setDeleteConfirm({ isOpen: true, deptId: id, deptName: name })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { deptId } = deleteConfirm
+    if (!deptId) return
 
     const token = getToken()
     if (!token) return
@@ -95,9 +102,10 @@ export default function Departments() {
     const api = createApiClient(token)
     setLoading(true)
     setError('')
+    setDeleteConfirm({ isOpen: false, deptId: null, deptName: '' })
 
     try {
-      await api.delete(`/api/departments/${id}/`)
+      await api.delete(`/api/departments/${deptId}/`)
       await fetchData()
     } catch (err) {
       setError(err.response?.data?.detail || 'Ошибка удаления отдела')
@@ -211,7 +219,7 @@ export default function Departments() {
                         </button>
                         <button 
                           className="btn-small btn-danger" 
-                          onClick={() => handleDelete(dept.id)}
+                          onClick={() => handleDeleteClick(dept.id, dept.name)}
                           disabled={loading}
                         >
                           Удалить
@@ -293,6 +301,16 @@ export default function Departments() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, deptId: null, deptName: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Удаление отдела"
+        message={`Вы уверены, что хотите удалить отдел "${deleteConfirm.deptName}"? Это действие нельзя отменить.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
     </div>
   )
 }

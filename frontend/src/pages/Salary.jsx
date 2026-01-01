@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createApiClient, getToken } from '../api/client'
+import Pagination from '../components/Pagination'
 import './Salary.css'
 
 export default function Salary() {
@@ -7,12 +8,20 @@ export default function Salary() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [period, setPeriod] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [pageSize] = useState(20)
 
   useEffect(() => {
-    fetchCalculations()
+    fetchCalculations(1)
   }, [])
 
-  const fetchCalculations = async () => {
+  useEffect(() => {
+    fetchCalculations(currentPage)
+  }, [currentPage])
+
+  const fetchCalculations = async (page = 1) => {
     const token = getToken()
     if (!token) return
 
@@ -21,16 +30,23 @@ export default function Salary() {
     setError('')
 
     try {
-      const res = await api.get('/api/salary/')
+      const res = await api.get('/api/salary/', { params: { page } })
       // Обрабатываем разные форматы ответа
       let data = []
       if (res.data) {
         if (Array.isArray(res.data)) {
           data = res.data
+          setTotalCount(res.data.length)
+          setTotalPages(1)
         } else if (res.data.results) {
           data = res.data.results
+          setTotalCount(res.data.count || res.data.results.length)
+          const count = res.data.count || res.data.results.length
+          setTotalPages(Math.ceil(count / pageSize))
         } else if (res.data.data) {
           data = res.data.data
+          setTotalCount(Array.isArray(res.data.data) ? res.data.data.length : 0)
+          setTotalPages(1)
         }
       }
       setCalculations(Array.isArray(data) ? data : [])
@@ -54,7 +70,7 @@ export default function Salary() {
         period: period || new Date().toISOString().slice(0, 7),
         user_id: null,
       })
-      await fetchCalculations()
+      await fetchCalculations(currentPage)
       setPeriod('')
     } catch (err) {
       setError(err.response?.data?.detail || 'Ошибка расчета')
@@ -125,6 +141,19 @@ export default function Salary() {
           <div className="placeholder">Нет данных о расчетах</div>
         )}
       </div>
+
+      {!loading && calculations.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={(page) => {
+            setCurrentPage(page)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
     </div>
   )
 }

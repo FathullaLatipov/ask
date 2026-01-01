@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createApiClient, getToken } from '../api/client'
+import ConfirmModal from '../components/ConfirmModal'
+import Pagination from '../components/Pagination'
 import './Users.css'
 
 export default function Users() {
@@ -9,8 +11,14 @@ export default function Users() {
   const [error, setError] = useState('')
   const [filterDept, setFilterDept] = useState('')
   const [filterRole, setFilterRole] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, userId: null, userName: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [pageSize] = useState(20)
   const [formData, setFormData] = useState({
     email: '',
     first_name: '',
@@ -32,7 +40,7 @@ export default function Users() {
     fetchDepartments()
   }, [])
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1) => {
     const token = getToken()
     if (!token) return
 
@@ -41,7 +49,7 @@ export default function Users() {
     setError('')
 
     try {
-      const params = {}
+      const params = { page }
       if (filterDept) params.department_id = filterDept
       if (filterRole) params.role = filterRole
 
@@ -51,10 +59,18 @@ export default function Users() {
       if (res.data) {
         if (Array.isArray(res.data)) {
           data = res.data
+          setTotalCount(res.data.length)
+          setTotalPages(1)
         } else if (res.data.results) {
           data = res.data.results
+          setTotalCount(res.data.count || res.data.results.length)
+          // Вычисляем общее количество страниц
+          const count = res.data.count || res.data.results.length
+          setTotalPages(Math.ceil(count / pageSize))
         } else if (res.data.data) {
           data = res.data.data
+          setTotalCount(Array.isArray(res.data.data) ? res.data.data.length : 0)
+          setTotalPages(1)
         }
       }
       setUsers(Array.isArray(data) ? data : [])
@@ -91,8 +107,13 @@ export default function Users() {
   }
 
   useEffect(() => {
-    fetchUsers()
+    setCurrentPage(1)
+    fetchUsers(1)
   }, [filterDept, filterRole])
+
+  useEffect(() => {
+    fetchUsers(currentPage)
+  }, [currentPage])
 
   const handleCreate = () => {
     setEditingUser(null)
@@ -134,8 +155,13 @@ export default function Users() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Вы уверены, что хотите удалить этого пользователя?')) return
+  const handleDeleteClick = (id, userName) => {
+    setDeleteConfirm({ isOpen: true, userId: id, userName })
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { userId } = deleteConfirm
+    if (!userId) return
 
     const token = getToken()
     if (!token) return
@@ -143,16 +169,26 @@ export default function Users() {
     const api = createApiClient(token)
     setLoading(true)
     setError('')
+    setDeleteConfirm({ isOpen: false, userId: null, userName: '' })
 
     try {
-      await api.delete(`/api/users/${id}/`)
-      await fetchUsers()
+      await api.delete(`/api/users/${userId}/`)
+      await fetchUsers(currentPage)
     } catch (err) {
       setError(err.response?.data?.detail || 'Ошибка удаления пользователя')
     } finally {
       setLoading(false)
     }
   }
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = !searchQuery || 
+      `${user.first_name} ${user.last_name} ${user.email || ''} ${user.position || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesDept = !filterDept || 
+      (typeof user.department === 'object' ? user.department?.id : user.department) == filterDept
+    const matchesRole = !filterRole || user.role === filterRole
+    return matchesSearch && matchesDept && matchesRole
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -194,7 +230,7 @@ export default function Users() {
       }
 
       setShowModal(false)
-      await fetchUsers()
+      await fetchUsers(currentPage)
     } catch (err) {
       setError(err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Ошибка сохранения')
     } finally {
@@ -218,35 +254,61 @@ export default function Users() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="filters">
-        <select
-          value={filterDept}
-          onChange={(e) => setFilterDept(e.target.value)}
-          className="filter-select"
-        >
-          <option value="">Все отделы</option>
-          {departments.map((dept) => (
-            <option key={dept.id} value={dept.id}>
-              {dept.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          className="filter-select"
-        >
-          <option value="">Все роли</option>
-          <option value="employee">Сотрудник</option>
-          <option value="manager">Менеджер</option>
-          <option value="admin">Администратор</option>
-        </select>
+      <div className="search-filters-section">
+        <div className="filters-row">
+          <select
+            value={filterDept}
+            onChange={(e) => setFilterDept(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Все отделы</option>
+            {departments.map((dept) => (
+              <option key={dept.id} value={dept.id}>
+                {dept.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Все роли</option>
+            <option value="employee">Сотрудник</option>
+            <option value="manager">Менеджер</option>
+            <option value="admin">Администратор</option>
+          </select>
+          <div className="search-box">
+            <div className="search-input-wrapper">
+              <span className="search-icon">🔍</span>
+              <input
+                type="text"
+                placeholder="Поиск по имени, email, должности..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+            </div>
+          </div>
+        </div>
+        {filteredUsers.length !== users.length && (
+          <div style={{ marginTop: '8px', color: '#64748b', fontSize: '14px' }}>
+            Найдено: {filteredUsers.length} из {users.length}
+          </div>
+        )}
       </div>
 
       <div className="card">
         {loading ? (
           <div className="placeholder">Загрузка...</div>
-        ) : users.length > 0 ? (
+        ) : filteredUsers.length > 0 ? (
+          <div style={{ marginBottom: '12px', color: '#64748b', fontSize: '14px' }}>
+            Найдено: {filteredUsers.length} из {users.length}
+          </div>
+        ) : null}
+        {loading ? (
+          <div className="placeholder">Загрузка...</div>
+        ) : filteredUsers.length > 0 ? (
           <div className="table">
             <div className="table-head">
               <span>ID</span>
@@ -258,7 +320,7 @@ export default function Users() {
               <span>Статус</span>
               <span>Действия</span>
             </div>
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <div key={user.id} className="table-row">
                 <span>{user.id}</span>
                 <span>
@@ -289,7 +351,7 @@ export default function Users() {
                   </button>
                   <button 
                     className="btn-small btn-danger" 
-                    onClick={() => handleDelete(user.id)}
+                    onClick={() => handleDeleteClick(user.id, `${user.first_name} ${user.last_name}`)}
                     disabled={loading}
                   >
                     Удалить
@@ -302,6 +364,19 @@ export default function Users() {
           <div className="placeholder">Нет сотрудников</div>
         )}
       </div>
+
+      {!loading && filteredUsers.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={(page) => {
+            setCurrentPage(page)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -463,6 +538,16 @@ export default function Users() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, userId: null, userName: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Удаление сотрудника"
+        message={`Вы уверены, что хотите удалить сотрудника "${deleteConfirm.userName}"? Это действие нельзя отменить.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
     </div>
   )
 }

@@ -2,6 +2,27 @@
   display: flex;
   min-height: 100vh;
   background: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
 }
 
 .sidebar {
@@ -13,6 +34,34 @@
   position: fixed;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 999;
+  transition: transform 0.3s ease;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-header {
@@ -96,6 +145,9 @@
   margin-left: 260px;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: calc(100% - 260px);
+  position: relative;
 }
 
 .dashboard-header {
@@ -105,6 +157,31 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menu-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #1e293b;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.menu-toggle:hover {
+  background: #f3f4f6;
 }
 
 .dashboard-header h1 {
@@ -137,7 +214,144 @@
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Tablet styles */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    padding: 24px;
+  }
+  
+  .dashboard-header {
+    padding: 16px 24px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .dashboard-layout {
+    overflow-x: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+  }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    touch-action: pan-y;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-overlay.active {
+    touch-action: pan-y;
+  }
+  
+  .sidebar-close {
+    display: flex;
+    touch-action: manipulation;
+  }
+  
+  .menu-toggle {
+    display: block;
+    touch-action: manipulation;
+  }
+  
+  .dashboard-main {
+    margin-left: 0;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  .dashboard-header {
+    padding: 12px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: white;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 20px;
+  }
+  
+  .header-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .header-link {
+    padding: 6px 12px;
+    font-size: 12px;
+    touch-action: manipulation;
+  }
+  
+  .dashboard-content {
+    padding: 16px;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .sidebar-header {
+    padding: 20px;
+    position: relative;
+  }
+  
+  .nav-item {
+    padding: 14px 20px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-label {
+    font-size: 14px;
+  }
+  
+  .logout-btn {
+    touch-action: manipulation;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header h1 {
+    font-size: 18px;
+  }
+  
+  .header-link {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  
+  .dashboard-content {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+  
+  .sidebar {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  /* Prevent accidental swipes */
+  .dashboard-main {
+    touch-action: pan-y;
+  }
+  
+  .dashboard-content {
+    touch-action: pan-y;
+  }
+}
+
 
 
 
