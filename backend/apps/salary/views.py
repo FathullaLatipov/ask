@@ -35,7 +35,16 @@ class SalaryViewSet(viewsets.ModelViewSet):
         if user_id and user.role in ['manager', 'admin']:
             queryset = queryset.filter(user_id=user_id)
         
-        return queryset
+        # Фильтр по периоду (YYYY-MM)
+        period = self.request.query_params.get('period')
+        if period:
+            try:
+                period_date = datetime.strptime(period, '%Y-%m').date()
+                queryset = queryset.filter(period=period_date)
+            except ValueError:
+                pass  # Игнорируем неверный формат
+        
+        return queryset.select_related('user', 'user__department')
 
     @action(detail=False, methods=['post'])
     def calculate(self, request):
@@ -44,19 +53,43 @@ class SalaryViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         period_str = serializer.validated_data['period']  # YYYY-MM
-        user_id = request.data.get('user_id', request.user.id)
+        user_id = request.data.get('user_id')
+        
+        # Преобразуем user_id в int если он указан, иначе None
+        if user_id:
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                user_id = None
         
         # Проверяем права доступа
-        if request.user.role == 'employee' and user_id != request.user.id:
-            return Response({
-                'error': {
-                    'code': 'FORBIDDEN',
-                    'message': 'Недостаточно прав доступа'
-                }
-            }, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role == 'employee':
+            # Сотрудники могут рассчитывать только для себя
+            user_id = request.user.id
+        elif request.user.role == 'manager' and user_id and user_id != request.user.id:
+            # Менеджеры могут рассчитывать только для своего отдела
+            from apps.users.models import User
+            try:
+                target_user = User.objects.get(id=user_id)
+                if target_user.department != request.user.department:
+                    return Response({
+                        'error': {
+                            'code': 'FORBIDDEN',
+                            'message': 'Недостаточно прав доступа'
+                        }
+                    }, status=status.HTTP_403_FORBIDDEN)
+            except User.DoesNotExist:
+                return Response({
+                    'error': {
+                        'code': 'NOT_FOUND',
+                        'message': 'Пользователь не найден'
+                    }
+                }, status=status.HTTP_404_NOT_FOUND)
         
         try:
+            # Создаем дату первого числа месяца
             period_date = datetime.strptime(period_str, '%Y-%m').date()
+            period_date = period_date.replace(day=1)
         except ValueError:
             return Response({
                 'error': {
@@ -65,21 +98,56 @@ class SalaryViewSet(viewsets.ModelViewSet):
                 }
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Проверяем, не рассчитана ли уже ЗП
-        salary, created = Salary.objects.get_or_create(
-            user_id=user_id,
-            period=period_date,
-            defaults={'status': 'calculated'}
-        )
+        from apps.users.models import User
         
-        if not created:
-            # Пересчитываем
-            salary.calculations.all().delete()
+        # Определяем список пользователей для расчета
+        if user_id:
+            # Рассчитываем для одного пользователя
+            try:
+                users_to_calculate = [User.objects.get(id=user_id)]
+            except User.DoesNotExist:
+                return Response({
+                    'error': {
+                        'code': 'NOT_FOUND',
+                        'message': 'Пользователь не найден'
+                    }
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Рассчитываем для всех пользователей (в зависимости от роли)
+            if request.user.role == 'employee':
+                users_to_calculate = [request.user]
+            elif request.user.role == 'manager' and request.user.department:
+                users_to_calculate = User.objects.filter(department=request.user.department, is_active=True)
+            else:  # admin
+                users_to_calculate = User.objects.filter(is_active=True)
         
-        # Рассчитываем ЗП
-        result = self._calculate_salary(user_id, period_date, salary)
+        # Рассчитываем ЗП для каждого пользователя
+        results = []
+        any_created = False
+        for user in users_to_calculate:
+            # Проверяем, не рассчитана ли уже ЗП
+            salary, created = Salary.objects.get_or_create(
+                user=user,
+                period=period_date,
+                defaults={'status': 'calculated', 'base_hours': Decimal('0.00'), 'base_amount': Decimal('0.00'), 'total_amount': Decimal('0.00')}
+            )
+            
+            if created:
+                any_created = True
+            
+            if not created:
+                # Пересчитываем
+                salary.calculations.all().delete()
+            
+            # Рассчитываем ЗП
+            self._calculate_salary(user.id, period_date, salary)
+            results.append(salary)
         
-        return Response(SalarySerializer(salary).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        # Возвращаем список результатов или один результат
+        if len(results) == 1:
+            return Response(SalarySerializer(results[0]).data, status=status.HTTP_201_CREATED if any_created else status.HTTP_200_OK)
+        else:
+            return Response(SalarySerializer(results, many=True).data, status=status.HTTP_201_CREATED)
 
     def _calculate_salary(self, user_id, period_date, salary):
         """Логика расчета ЗП"""
@@ -87,16 +155,12 @@ class SalaryViewSet(viewsets.ModelViewSet):
         
         user = User.objects.get(id=user_id)
         
-        # Начало и конец периода
+        # Начало и конец периода (period_date всегда первое число месяца)
         start_date = period_date
-        if period_date.day == 1:
-            # Если первое число месяца, берем весь месяц
-            if period_date.month == 12:
-                end_date = period_date.replace(year=period_date.year + 1, month=1, day=1) - timedelta(days=1)
-            else:
-                end_date = period_date.replace(month=period_date.month + 1, day=1) - timedelta(days=1)
+        if period_date.month == 12:
+            end_date = period_date.replace(year=period_date.year + 1, month=1, day=1) - timedelta(days=1)
         else:
-            end_date = period_date
+            end_date = period_date.replace(month=period_date.month + 1, day=1) - timedelta(days=1)
         
         # Отработанные часы
         attendances = Attendance.objects.filter(

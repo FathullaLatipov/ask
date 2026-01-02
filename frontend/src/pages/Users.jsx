@@ -204,10 +204,10 @@ export default function Users() {
         email: formData.email,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        middle_name: formData.middle_name,
-        phone: formData.phone,
-        department: formData.department || null,
-        position: formData.position,
+        middle_name: formData.middle_name || '',
+        phone: formData.phone || '',
+        department: formData.department ? parseInt(formData.department) : null,
+        position: formData.position || '',
         role: formData.role,
         salary_type: formData.salary_type,
         is_active: formData.is_active,
@@ -232,7 +232,33 @@ export default function Users() {
       setShowModal(false)
       await fetchUsers(currentPage)
     } catch (err) {
-      setError(err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Ошибка сохранения')
+      console.error('Ошибка сохранения:', err.response?.data)
+      let errorMessage = 'Ошибка сохранения'
+      
+      if (err.response?.data) {
+        // Обработка детальной ошибки
+        if (err.response.data.detail) {
+          errorMessage = err.response.data.detail
+        } else {
+          // Обработка ошибок валидации полей
+          const errors = []
+          Object.keys(err.response.data).forEach((field) => {
+            const fieldErrors = err.response.data[field]
+            if (Array.isArray(fieldErrors)) {
+              fieldErrors.forEach((msg) => {
+                errors.push(`${field}: ${msg}`)
+              })
+            } else if (typeof fieldErrors === 'string') {
+              errors.push(`${field}: ${fieldErrors}`)
+            } else {
+              errors.push(`${field}: ${JSON.stringify(fieldErrors)}`)
+            }
+          })
+          errorMessage = errors.length > 0 ? errors.join('; ') : errorMessage
+        }
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -309,56 +335,58 @@ export default function Users() {
         {loading ? (
           <div className="placeholder">Загрузка...</div>
         ) : filteredUsers.length > 0 ? (
-          <div className="table">
-            <div className="table-head">
-              <span>ID</span>
-              <span>Имя</span>
-              <span>Email</span>
-              <span>Отдел</span>
-              <span>Должность</span>
-              <span>Роль</span>
-              <span>Статус</span>
-              <span>Действия</span>
-            </div>
-            {filteredUsers.map((user) => (
-              <div key={user.id} className="table-row">
-                <span>{user.id}</span>
-                <span>
-                  {user.first_name} {user.last_name}
-                </span>
-                <span>{user.email || '—'}</span>
-                <span>
-                  {typeof user.department === 'object' 
-                    ? user.department?.name 
-                    : departments.find(d => d.id === user.department)?.name || '—'}
-                </span>
-                <span>{user.position || '—'}</span>
-                <span>
-                  <span className={`role-badge role-${user.role}`}>{user.role}</span>
-                </span>
-                <span>
-                  <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
-                    {user.is_active ? 'Активен' : 'Неактивен'}
-                  </span>
-                </span>
-                <span className="actions">
-                  <button 
-                    className="btn-small btn-primary" 
-                    onClick={() => handleEdit(user)}
-                    disabled={loading}
-                  >
-                    Редактировать
-                  </button>
-                  <button 
-                    className="btn-small btn-danger" 
-                    onClick={() => handleDeleteClick(user.id, `${user.first_name} ${user.last_name}`)}
-                    disabled={loading}
-                  >
-                    Удалить
-                  </button>
-                </span>
+          <div className="table-container">
+            <div className="table">
+              <div className="table-head">
+                <span>ID</span>
+                <span>Имя</span>
+                <span>Email</span>
+                <span>Отдел</span>
+                <span>Должность</span>
+                <span>Роль</span>
+                <span>Статус</span>
+                <span>Действия</span>
               </div>
-            ))}
+              {filteredUsers.map((user) => (
+                <div key={user.id} className="table-row">
+                  <span>{user.id}</span>
+                  <span>
+                    {user.first_name} {user.last_name}
+                  </span>
+                  <span>{user.email || '—'}</span>
+                  <span>
+                    {typeof user.department === 'object' 
+                      ? user.department?.name 
+                      : departments.find(d => d.id === user.department)?.name || '—'}
+                  </span>
+                  <span>{user.position || '—'}</span>
+                  <span>
+                    <span className={`role-badge role-${user.role}`}>{user.role}</span>
+                  </span>
+                  <span>
+                    <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
+                      {user.is_active ? 'Активен' : 'Неактивен'}
+                    </span>
+                  </span>
+                  <span className="actions">
+                    <button 
+                      className="btn-small btn-primary" 
+                      onClick={() => handleEdit(user)}
+                      disabled={loading}
+                    >
+                      Редактировать
+                    </button>
+                    <button 
+                      className="btn-small btn-danger" 
+                      onClick={() => handleDeleteClick(user.id, `${user.first_name} ${user.last_name}`)}
+                      disabled={loading}
+                    >
+                      Удалить
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="placeholder">Нет сотрудников</div>
