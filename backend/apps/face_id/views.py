@@ -1,5 +1,5 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import FacePhoto
@@ -8,7 +8,8 @@ from .serializers import (
 )
 
 
-class FaceIdViewSet(viewsets.ModelViewSet):
+class FacePhotoListCreateView(generics.ListCreateAPIView):
+    """Список и создание фото для Face ID"""
     queryset = FacePhoto.objects.all()
     serializer_class = FacePhotoSerializer
     permission_classes = [IsAuthenticated]
@@ -20,9 +21,26 @@ class FaceIdViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user=self.request.user)
         return queryset
 
-    @action(detail=False, methods=['post'])
-    def verify(self, request):
-        """Верификация фото через Face ID Service"""
+
+class FacePhotoRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """Детали, обновление и удаление фото для Face ID"""
+    queryset = FacePhoto.objects.all()
+    serializer_class = FacePhotoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Сотрудники видят только свои фото
+        if self.request.user.role == 'employee':
+            queryset = queryset.filter(user=self.request.user)
+        return queryset
+
+
+class FaceVerifyView(APIView):
+    """Верификация фото через Face ID Service"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         serializer = FaceVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -40,9 +58,12 @@ class FaceIdViewSet(viewsets.ModelViewSet):
         result = serializer.verify(user_id)
         return Response(result)
 
-    @action(detail=False, methods=['post'])
-    def register(self, request):
-        """Регистрация эталонного фото"""
+
+class FaceRegisterView(APIView):
+    """Регистрация эталонного фото"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         serializer = FaceRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -79,4 +100,3 @@ class FaceIdViewSet(viewsets.ModelViewSet):
             return Response(FacePhotoSerializer(face_photo).data, status=status.HTTP_201_CREATED)
         
         return Response(result, status=status.HTTP_400_BAD_REQUEST)
-

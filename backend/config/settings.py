@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party
+    'modeltranslation',  # Must be before django.contrib.admin
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -54,10 +55,12 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Locale middleware для языков
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'config.middleware.TenantMiddleware',  # Middleware для мультитенантности
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -135,10 +138,25 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'ru-ru'
-TIME_ZONE = 'Europe/Moscow'
+LANGUAGE_CODE = 'ru'
+TIME_ZONE = 'Asia/Tashkent'
 USE_I18N = True
+USE_L10N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ('ru', 'Русский'),
+    ('uz', "O'zbek"),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+
+# Modeltranslation settings
+MODELTRANSLATION_DEFAULT_LANGUAGE = 'ru'
+MODELTRANSLATION_LANGUAGES = ('ru', 'uz')
+MODELTRANSLATION_FALLBACK_LANGUAGES = ('ru',)
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
@@ -180,6 +198,19 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3002,http://localhost:5173,http://127.0.0.1:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # В режиме разработки разрешаем все источники
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-language',  # Разрешаем заголовок для языка
+    'x-company-id',  # Разрешаем заголовок для компании
+]
 
 # JWT Settings
 JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key')

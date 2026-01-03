@@ -14,6 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
+from apps.users.models import Company
 from apps.departments.models import Department, WorkSchedule
 from apps.attendance.models import Attendance
 from apps.requests.models import Request
@@ -25,77 +26,213 @@ User = get_user_model()
 def create_test_data():
     print("Создание тестовых данных...")
     
+    # 0. Создание компании
+    print("0. Создание компании...")
+    company, created = Company.objects.get_or_create(
+        name='Тестовая компания',
+        defaults={
+            'domain': 'test',
+            'is_active': True,
+            'name_ru': 'Тестовая компания',
+            'name_uz': 'Test kompaniya',
+        }
+    )
+    if created:
+        print(f"   Создана компания: {company.name}")
+    else:
+        print(f"   Используется существующая компания: {company.name}")
+        # Обновляем переводы, если их нет
+        if not company.name_ru:
+            company.name_ru = 'Тестовая компания'
+        if not company.name_uz:
+            company.name_uz = 'Test kompaniya'
+        company.save()
+    
     # 1. Создание графиков работы
     print("1. Создание графиков работы...")
-    schedule1, _ = WorkSchedule.objects.get_or_create(
+    schedule1, created = WorkSchedule.objects.get_or_create(
         name="Стандартный график",
+        company=company,
         defaults={
             'start_time': '09:00:00',
             'end_time': '18:00:00',
             'break_duration': 60,
             'work_days': [1, 2, 3, 4, 5],  # Пн-Пт
-            'late_threshold': 15
+            'late_threshold': 15,
+            'name_ru': 'Стандартный график',
+            'name_uz': 'Standart grafik',
         }
     )
+    if not created:
+        if not schedule1.name_ru:
+            schedule1.name_ru = 'Стандартный график'
+        if not schedule1.name_uz:
+            schedule1.name_uz = 'Standart grafik'
+        schedule1.save()
     
-    schedule2, _ = WorkSchedule.objects.get_or_create(
+    schedule2, created = WorkSchedule.objects.get_or_create(
         name="Сменный график",
+        company=company,
         defaults={
             'start_time': '08:00:00',
             'end_time': '17:00:00',
             'break_duration': 60,
             'work_days': [1, 2, 3, 4, 5, 6],
-            'late_threshold': 10
+            'late_threshold': 10,
+            'name_ru': 'Сменный график',
+            'name_uz': 'Smenali grafik',
         }
     )
+    if not created:
+        if not schedule2.name_ru:
+            schedule2.name_ru = 'Сменный график'
+        if not schedule2.name_uz:
+            schedule2.name_uz = 'Smenali grafik'
+        schedule2.save()
     print(f"   Создано графиков: {WorkSchedule.objects.count()}")
     
     # 2. Создание отделов
     print("2. Создание отделов...")
-    dept_it, _ = Department.objects.get_or_create(
+    dept_it, created = Department.objects.get_or_create(
         name="IT отдел",
-        defaults={'description': 'Отдел информационных технологий'}
+        company=company,
+        defaults={
+            'description': 'Отдел информационных технологий',
+            'name_ru': 'IT отдел',
+            'name_uz': 'IT bo\'limi',
+            'description_ru': 'Отдел информационных технологий',
+            'description_uz': 'Axborot texnologiyalari bo\'limi',
+        }
     )
+    if not created:
+        if not dept_it.name_ru:
+            dept_it.name_ru = 'IT отдел'
+        if not dept_it.name_uz:
+            dept_it.name_uz = 'IT bo\'limi'
+        if not dept_it.description_ru:
+            dept_it.description_ru = 'Отдел информационных технологий'
+        if not dept_it.description_uz:
+            dept_it.description_uz = 'Axborot texnologiyalari bo\'limi'
+        dept_it.save()
     
-    dept_sales, _ = Department.objects.get_or_create(
+    dept_sales, created = Department.objects.get_or_create(
         name="Отдел продаж",
-        defaults={'description': 'Отдел продаж и маркетинга'}
+        company=company,
+        defaults={
+            'description': 'Отдел продаж и маркетинга',
+            'name_ru': 'Отдел продаж',
+            'name_uz': 'Sotish bo\'limi',
+            'description_ru': 'Отдел продаж и маркетинга',
+            'description_uz': 'Sotish va marketing bo\'limi',
+        }
     )
+    if not created:
+        if not dept_sales.name_ru:
+            dept_sales.name_ru = 'Отдел продаж'
+        if not dept_sales.name_uz:
+            dept_sales.name_uz = 'Sotish bo\'limi'
+        if not dept_sales.description_ru:
+            dept_sales.description_ru = 'Отдел продаж и маркетинга'
+        if not dept_sales.description_uz:
+            dept_sales.description_uz = 'Sotish va marketing bo\'limi'
+        dept_sales.save()
     
-    dept_hr, _ = Department.objects.get_or_create(
+    dept_hr, created = Department.objects.get_or_create(
         name="HR отдел",
-        defaults={'description': 'Отдел кадров'}
+        company=company,
+        defaults={
+            'description': 'Отдел кадров',
+            'name_ru': 'HR отдел',
+            'name_uz': 'HR bo\'limi',
+            'description_ru': 'Отдел кадров',
+            'description_uz': 'Kadrlar bo\'limi',
+        }
     )
+    if not created:
+        if not dept_hr.name_ru:
+            dept_hr.name_ru = 'HR отдел'
+        if not dept_hr.name_uz:
+            dept_hr.name_uz = 'HR bo\'limi'
+        if not dept_hr.description_ru:
+            dept_hr.description_ru = 'Отдел кадров'
+        if not dept_hr.description_uz:
+            dept_hr.description_uz = 'Kadrlar bo\'limi'
+        dept_hr.save()
     
-    dept_finance, _ = Department.objects.get_or_create(
+    dept_finance, created = Department.objects.get_or_create(
         name="Финансовый отдел",
-        defaults={'description': 'Финансовый отдел и бухгалтерия'}
+        company=company,
+        defaults={
+            'description': 'Финансовый отдел и бухгалтерия',
+            'name_ru': 'Финансовый отдел',
+            'name_uz': 'Moliya bo\'limi',
+            'description_ru': 'Финансовый отдел и бухгалтерия',
+            'description_uz': 'Moliya bo\'limi va buxgalteriya',
+        }
     )
+    if not created:
+        if not dept_finance.name_ru:
+            dept_finance.name_ru = 'Финансовый отдел'
+        if not dept_finance.name_uz:
+            dept_finance.name_uz = 'Moliya bo\'limi'
+        if not dept_finance.description_ru:
+            dept_finance.description_ru = 'Финансовый отдел и бухгалтерия'
+        if not dept_finance.description_uz:
+            dept_finance.description_uz = 'Moliya bo\'limi va buxgalteriya'
+        dept_finance.save()
     print(f"   Создано отделов: {Department.objects.count()}")
     
     # 3. Создание рабочих локаций
     print("3. Создание рабочих локаций...")
-    location1, _ = WorkLocation.objects.get_or_create(
+    location1, created = WorkLocation.objects.get_or_create(
         name="Главный офис",
         defaults={
             'address': 'Москва, ул. Тверская, 1',
             'latitude': Decimal('55.7558'),
             'longitude': Decimal('37.6173'),
             'radius': 100,
-            'department': dept_it
+            'department': dept_it,
+            'name_ru': 'Главный офис',
+            'name_uz': 'Bosh ofis',
+            'address_ru': 'Москва, ул. Тверская, 1',
+            'address_uz': 'Moskva, Tverskaya ko\'chasi, 1',
         }
     )
+    if not created:
+        if not location1.name_ru:
+            location1.name_ru = 'Главный офис'
+        if not location1.name_uz:
+            location1.name_uz = 'Bosh ofis'
+        if not location1.address_ru:
+            location1.address_ru = 'Москва, ул. Тверская, 1'
+        if not location1.address_uz:
+            location1.address_uz = 'Moskva, Tverskaya ko\'chasi, 1'
+        location1.save()
     
-    location2, _ = WorkLocation.objects.get_or_create(
+    location2, created = WorkLocation.objects.get_or_create(
         name="Офис продаж",
         defaults={
             'address': 'Москва, ул. Ленина, 10',
             'latitude': Decimal('55.7512'),
             'longitude': Decimal('37.6184'),
             'radius': 150,
-            'department': dept_sales
+            'department': dept_sales,
+            'name_ru': 'Офис продаж',
+            'name_uz': 'Sotish ofisi',
+            'address_ru': 'Москва, ул. Ленина, 10',
+            'address_uz': 'Moskva, Lenina ko\'chasi, 10',
         }
     )
+    if not created:
+        if not location2.name_ru:
+            location2.name_ru = 'Офис продаж'
+        if not location2.name_uz:
+            location2.name_uz = 'Sotish ofisi'
+        if not location2.address_ru:
+            location2.address_ru = 'Москва, ул. Ленина, 10'
+        if not location2.address_uz:
+            location2.address_uz = 'Moskva, Lenina ko\'chasi, 10'
+        location2.save()
     print(f"   Создано локаций: {WorkLocation.objects.count()}")
     
     # 4. Создание пользователей
@@ -105,6 +242,7 @@ def create_test_data():
     manager_it, _ = User.objects.get_or_create(
         email='manager.it@example.com',
         defaults={
+            'company': company,
             'first_name': 'Иван',
             'last_name': 'Петров',
             'role': 'manager',
@@ -123,6 +261,7 @@ def create_test_data():
     manager_sales, _ = User.objects.get_or_create(
         email='manager.sales@example.com',
         defaults={
+            'company': company,
             'first_name': 'Мария',
             'last_name': 'Сидорова',
             'role': 'manager',
@@ -155,6 +294,7 @@ def create_test_data():
         user, created = User.objects.get_or_create(
             email=emp_data['email'],
             defaults={
+                'company': company,
                 'first_name': emp_data['first_name'],
                 'last_name': emp_data['last_name'],
                 'role': 'employee',
@@ -182,6 +322,7 @@ def create_test_data():
         user, created = User.objects.get_or_create(
             email=emp_data['email'],
             defaults={
+                'company': company,
                 'first_name': emp_data['first_name'],
                 'last_name': emp_data['last_name'],
                 'role': 'employee',
@@ -202,6 +343,7 @@ def create_test_data():
     hr_emp, _ = User.objects.get_or_create(
         email='hr1@example.com',
         defaults={
+            'company': company,
             'first_name': 'Татьяна',
             'last_name': 'Федорова',
             'role': 'employee',
@@ -216,6 +358,9 @@ def create_test_data():
     if not hr_emp.password or hr_emp.check_password('password123'):
         hr_emp.set_password('password123')
         hr_emp.save()
+    
+    # Обновляем company для существующих пользователей, если они её не имеют
+    User.objects.filter(company__isnull=True).update(company=company)
     
     print(f"   Создано пользователей: {User.objects.count()}")
     

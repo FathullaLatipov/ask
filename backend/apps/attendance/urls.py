@@ -1,16 +1,16 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import AttendanceViewSet
-
-router = DefaultRouter()
-router.register(r'', AttendanceViewSet, basename='attendance')
+from django.urls import path
+from .views import (
+    AttendanceListCreateView, AttendanceRetrieveUpdateDestroyView,
+    AttendanceCheckinView, AttendanceCheckoutView,
+    AttendanceCurrentView, AttendanceActiveView
+)
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('checkin/', AttendanceViewSet.as_view({'post': 'checkin'}), name='attendance-checkin'),
-    path('checkout/', AttendanceViewSet.as_view({'post': 'checkout'}), name='attendance-checkout'),
-    path('current/', AttendanceViewSet.as_view({'get': 'current'}), name='attendance-current'),
-    path('active/', AttendanceViewSet.as_view({'get': 'active'}), name='attendance-active'),
-    path('history/', AttendanceViewSet.as_view({'get': 'list'}), name='attendance-history'),
+    path('', AttendanceListCreateView.as_view(), name='attendance-list-create'),
+    path('<int:pk>/', AttendanceRetrieveUpdateDestroyView.as_view(), name='attendance-detail'),
+    path('checkin/', AttendanceCheckinView.as_view(), name='attendance-checkin'),
+    path('checkout/', AttendanceCheckoutView.as_view(), name='attendance-checkout'),
+    path('current/', AttendanceCurrentView.as_view(), name='attendance-current'),
+    path('active/', AttendanceActiveView.as_view(), name='attendance-active'),
+    path('history/', AttendanceListCreateView.as_view(), name='attendance-history'),
 ]
-

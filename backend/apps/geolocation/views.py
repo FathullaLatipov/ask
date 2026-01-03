@@ -1,5 +1,5 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
@@ -23,21 +23,37 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 
-class WorkLocationViewSet(viewsets.ModelViewSet):
+class WorkLocationListCreateView(generics.ListCreateAPIView):
+    """Список и создание рабочих локаций"""
     queryset = WorkLocation.objects.all()
     serializer_class = WorkLocationSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['department', 'is_active']
-    
-    def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]
-        return super().get_permissions()
 
-    @action(detail=False, methods=['post'])
-    def verify(self, request):
-        """Проверка геолокации сотрудника"""
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
+
+
+class WorkLocationRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """Детали, обновление и удаление рабочей локации"""
+    queryset = WorkLocation.objects.all()
+    serializer_class = WorkLocationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
+
+
+class GeolocationVerifyView(APIView):
+    """Проверка геолокации сотрудника"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         serializer = GeolocationVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -99,4 +115,3 @@ class WorkLocationViewSet(viewsets.ModelViewSet):
                 },
                 'message': f'Сотрудник находится слишком далеко ({round(min_distance, 0)}м > {nearest_location.radius}м)'
             })
-

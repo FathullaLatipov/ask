@@ -1,7 +1,9 @@
 import './ConfirmModal.css'
 
-export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = 'Удалить', cancelText = 'Отмена' }) {
+export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText = 'Удалить', cancelText = 'Отмена', confirmButtonStyle = 'danger' }) {
   if (!isOpen) return null
+
+  const confirmButtonClass = confirmButtonStyle === 'primary' ? 'btn-primary' : 'btn-danger'
 
   return (
     <div className="confirm-modal-overlay" onClick={onClose}>
@@ -16,7 +18,7 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
           <button className="btn btn-secondary" onClick={onClose}>
             {cancelText}
           </button>
-          <button className="btn btn-danger" onClick={onConfirm}>
+          <button className={`btn ${confirmButtonClass}`} onClick={onConfirm}>
             {confirmText}
           </button>
         </div>

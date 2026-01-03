@@ -1,16 +1,15 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
-from django.db.models import Q, Count, Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
-from datetime import date, timedelta
+from config.mixins import TenantFilterMixin
 from .models import Attendance
 from .serializers import (
     AttendanceSerializer, AttendanceCheckinSerializer,
-    AttendanceCheckoutSerializer, CurrentStatusSerializer
+    AttendanceCheckoutSerializer
 )
 from apps.departments.models import WorkSchedule
 from apps.geolocation.models import WorkLocation
@@ -20,7 +19,8 @@ from asgiref.sync import async_to_sync
 channel_layer = get_channel_layer()
 
 
-class AttendanceViewSet(viewsets.ModelViewSet):
+class AttendanceListCreateView(TenantFilterMixin, generics.ListCreateAPIView):
+    """Список и создание записей посещаемости"""
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
     permission_classes = [IsAuthenticated]
@@ -55,8 +55,32 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         
         return queryset
 
-    @action(detail=False, methods=['post'])
-    def checkin(self, request):
+
+class AttendanceRetrieveUpdateDestroyView(TenantFilterMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Детали, обновление и удаление записи посещаемости"""
+    queryset = Attendance.objects.all()
+    serializer_class = AttendanceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Сотрудники видят только свои записи
+        if user.role == 'employee':
+            queryset = queryset.filter(user=user)
+        # Руководители видят свой отдел
+        elif user.role == 'manager' and user.department:
+            queryset = queryset.filter(user__department=user.department)
+        
+        return queryset
+
+
+class AttendanceCheckinView(APIView):
+    """Отметить приход"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         try:
             serializer = AttendanceCheckinSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -150,8 +174,33 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=['post'])
-    def checkout(self, request):
+    def send_checkin_event(self, attendance):
+        """Отправка WebSocket события о приходе"""
+        try:
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    'dashboard',
+                    {
+                        'type': 'employee_checkin',
+                        'user_id': attendance.user.id,
+                        'user_name': f'{attendance.user.first_name} {attendance.user.last_name}',
+                        'department_id': attendance.user.department_id,
+                        'checkin_time': attendance.checkin_time.isoformat(),
+                        'is_late': attendance.is_late,
+                        'late_minutes': attendance.late_minutes
+                    }
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send WebSocket event: {e}")
+
+
+class AttendanceCheckoutView(APIView):
+    """Отметить уход"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         try:
             serializer = AttendanceCheckoutSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -203,8 +252,31 @@ class AttendanceViewSet(viewsets.ModelViewSet):
                 }
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=['get'])
-    def current(self, request):
+    def send_checkout_event(self, attendance):
+        """Отправка WebSocket события об уходе"""
+        try:
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    'dashboard',
+                    {
+                        'type': 'employee_checkout',
+                        'user_id': attendance.user.id,
+                        'user_name': f'{attendance.user.first_name} {attendance.user.last_name}',
+                        'checkout_time': attendance.checkout_time.isoformat(),
+                        'total_hours': float(attendance.total_hours or 0)
+                    }
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send WebSocket event: {e}")
+
+
+class AttendanceCurrentView(APIView):
+    """Получить текущий статус посещаемости"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
         user = request.user
         today = timezone.now().date()
         
@@ -235,9 +307,12 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             'attendance_id': attendance.id
         })
 
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def active(self, request):
-        """Получить активных сотрудников"""
+
+class AttendanceActiveView(APIView):
+    """Получить активных сотрудников"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
         user = request.user
         today = timezone.now().date()
         
@@ -310,34 +385,3 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             })
         
         return Response(data)
-
-    def send_checkin_event(self, attendance):
-        """Отправка WebSocket события о приходе"""
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                'dashboard',
-                {
-                    'type': 'employee_checkin',
-                    'user_id': attendance.user.id,
-                    'user_name': f'{attendance.user.first_name} {attendance.user.last_name}',
-                    'department_id': attendance.user.department_id,
-                    'checkin_time': attendance.checkin_time.isoformat(),
-                    'is_late': attendance.is_late,
-                    'late_minutes': attendance.late_minutes
-                }
-            )
-
-    def send_checkout_event(self, attendance):
-        """Отправка WebSocket события об уходе"""
-        if channel_layer:
-            async_to_sync(channel_layer.group_send)(
-                'dashboard',
-                {
-                    'type': 'employee_checkout',
-                    'user_id': attendance.user.id,
-                    'user_name': f'{attendance.user.first_name} {attendance.user.last_name}',
-                    'checkout_time': attendance.checkout_time.isoformat(),
-                    'total_hours': float(attendance.total_hours or 0)
-                }
-            )
-

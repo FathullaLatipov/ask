@@ -1,19 +1,19 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Q
-from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
+from config.mixins import TenantFilterMixin
 from .models import Salary, SalaryCalculation
 from .serializers import SalarySerializer, SalaryCalculateSerializer
 from apps.attendance.models import Attendance
-from apps.requests.models import Request
 from apps.requests.models import Request, Penalty
 
 
-class SalaryViewSet(viewsets.ModelViewSet):
+class SalaryListCreateView(TenantFilterMixin, generics.ListCreateAPIView):
+    """Список и создание зарплат"""
     queryset = Salary.objects.all()
     serializer_class = SalarySerializer
     permission_classes = [IsAuthenticated]
@@ -46,9 +46,32 @@ class SalaryViewSet(viewsets.ModelViewSet):
         
         return queryset.select_related('user', 'user__department')
 
-    @action(detail=False, methods=['post'])
-    def calculate(self, request):
-        """Рассчитать ЗП за период"""
+
+class SalaryRetrieveUpdateDestroyView(TenantFilterMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Детали, обновление и удаление зарплаты"""
+    queryset = Salary.objects.all()
+    serializer_class = SalarySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Сотрудники видят только свои ЗП
+        if user.role == 'employee':
+            queryset = queryset.filter(user=user)
+        # Руководители видят свой отдел
+        elif user.role == 'manager' and user.department:
+            queryset = queryset.filter(user__department=user.department)
+        
+        return queryset.select_related('user', 'user__department')
+
+
+class SalaryCalculateView(APIView):
+    """Рассчитать ЗП за период"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
         serializer = SalaryCalculateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -246,4 +269,3 @@ class SalaryViewSet(viewsets.ModelViewSet):
             )
         
         return salary
-

@@ -1,12 +1,11 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import SalaryViewSet
-
-router = DefaultRouter()
-router.register(r'', SalaryViewSet, basename='salary')
+from django.urls import path
+from .views import (
+    SalaryListCreateView, SalaryRetrieveUpdateDestroyView,
+    SalaryCalculateView
+)
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('calculate/', SalaryViewSet.as_view({'post': 'calculate'}), name='salary-calculate'),
+    path('', SalaryListCreateView.as_view(), name='salary-list-create'),
+    path('<int:pk>/', SalaryRetrieveUpdateDestroyView.as_view(), name='salary-detail'),
+    path('calculate/', SalaryCalculateView.as_view(), name='salary-calculate'),
 ]
-

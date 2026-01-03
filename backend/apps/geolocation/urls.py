@@ -1,12 +1,11 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import WorkLocationViewSet
-
-router = DefaultRouter()
-router.register(r'locations', WorkLocationViewSet, basename='work-location')
+from django.urls import path
+from .views import (
+    WorkLocationListCreateView, WorkLocationRetrieveUpdateDestroyView,
+    GeolocationVerifyView
+)
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('verify/', WorkLocationViewSet.as_view({'post': 'verify'}), name='geolocation-verify'),
+    path('', WorkLocationListCreateView.as_view(), name='work-location-list-create'),
+    path('<int:pk>/', WorkLocationRetrieveUpdateDestroyView.as_view(), name='work-location-detail'),
+    path('verify/', GeolocationVerifyView.as_view(), name='geolocation-verify'),
 ]
-

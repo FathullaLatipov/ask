@@ -105,6 +105,15 @@
   background: #dc2626;
 }
 
+.confirm-modal-actions .btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.confirm-modal-actions .btn-primary:hover {
+  background: #2563eb;
+}
+
 /* Responsive styles */
 @media (max-width: 768px) {
   .confirm-modal-content {

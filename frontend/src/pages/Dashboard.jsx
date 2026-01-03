@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createApiClient, getToken } from '../api/client'
 import {
   LineChart,
@@ -20,6 +21,7 @@ import './Dashboard.css'
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation()
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -37,8 +39,24 @@ export default function Dashboard() {
   const [showUsersTable, setShowUsersTable] = useState(true)
   const [showRequestsTable, setShowRequestsTable] = useState(true)
 
+  // Обновляем данные при изменении языка
   useEffect(() => {
     fetchDashboardData()
+  }, [i18n.language])
+  
+  useEffect(() => {
+    // Обновляем данные при изменении языка через событие (для немедленного обновления)
+    const handleLanguageChange = () => {
+      // Небольшая задержка, чтобы i18n успел обновиться
+      setTimeout(() => {
+        fetchDashboardData()
+      }, 100)
+    }
+    window.addEventListener('languageChanged', handleLanguageChange)
+    
+    return () => {
+      window.removeEventListener('languageChanged', handleLanguageChange)
+    }
   }, [])
 
   const fetchDashboardData = async () => {
@@ -104,9 +122,10 @@ export default function Dashboard() {
         })
         const chartData = Object.entries(dailyData)
           .map(([date, count]) => {
-            // Форматируем дату для отображения
+            // Форматируем дату для отображения с учетом текущего языка
             const dateObj = new Date(date)
-            const formattedDate = dateObj.toLocaleDateString('ru-RU', { 
+            const locale = i18n.language === 'uz' ? 'uz-UZ' : 'ru-RU'
+            const formattedDate = dateObj.toLocaleDateString(locale, { 
               day: '2-digit', 
               month: '2-digit' 
             })
@@ -178,10 +197,10 @@ export default function Dashboard() {
   })
 
   const statCards = [
-    { label: 'Всего сотрудников', value: stats.totalUsers, icon: '👥', color: '#3b82f6' },
-    { label: 'На работе сейчас', value: stats.activeUsers, icon: '✅', color: '#10b981' },
-    { label: 'Отделов', value: stats.totalDepartments, icon: '🏢', color: '#f59e0b' },
-    { label: 'Заявок на рассмотрении', value: stats.pendingRequests, icon: '📝', color: '#ef4444' },
+    { label: t('dashboard.totalEmployees'), value: stats.totalUsers, icon: '👥', color: '#3b82f6' },
+    { label: t('dashboard.onWorkNow'), value: stats.activeUsers, icon: '✅', color: '#10b981' },
+    { label: t('dashboard.departments'), value: stats.totalDepartments, icon: '🏢', color: '#f59e0b' },
+    { label: t('dashboard.pendingRequestsCount'), value: stats.pendingRequests, icon: '📝', color: '#ef4444' },
   ]
 
   return (
@@ -202,9 +221,9 @@ export default function Dashboard() {
 
       <div className="charts-grid">
         <div className="chart-card">
-          <h3>Посещаемость за неделю</h3>
+          <h3>{t('dashboard.attendanceWeek')}</h3>
           {loading ? (
-            <div className="chart-placeholder">Загрузка...</div>
+            <div className="chart-placeholder">{t('dashboard.loading')}</div>
           ) : attendanceData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={attendanceData}>
@@ -213,18 +232,18 @@ export default function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} />
+                <Line type="monotone" dataKey="count"  name={t('dashboard.count')} stroke="#3b82f6" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="chart-placeholder">Нет данных</div>
+            <div className="chart-placeholder">{t('dashboard.noData')}</div>
           )}
         </div>
 
         <div className="chart-card">
-          <h3>Распределение по отделам</h3>
+          <h3>{t('dashboard.departmentDistribution')}</h3>
           {loading ? (
-            <div className="chart-placeholder">Загрузка...</div>
+            <div className="chart-placeholder">{t('dashboard.loading')}</div>
           ) : departmentData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -251,40 +270,40 @@ export default function Dashboard() {
                   formatter={(value, name, props) => {
                     const entry = departmentData.find(d => d.name === name)
                     const realValue = entry && entry.value === 0 && value === 1 ? 0 : value
-                    return [realValue === 0 ? 'Нет сотрудников' : `${realValue} сотрудников`, name]
+                    return [realValue === 0 ? t('dashboard.noEmployees') : `${realValue} ${t('dashboard.employeesCount')}`, name]
                   }}
                 />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="chart-placeholder">Нет данных</div>
+            <div className="chart-placeholder">{t('dashboard.noData')}</div>
           )}
         </div>
       </div>
 
       <div className="quick-actions">
-        <h3>Быстрые действия</h3>
+        <h3>{t('dashboard.quickActions')}</h3>
         <div className="actions-grid">
           <button className="action-btn" onClick={() => window.location.href = '/attendance'}>
             <span className="action-icon">⏰</span>
-            <span>Учет времени</span>
+            <span>{t('dashboard.timeTracking')}</span>
           </button>
           <button className="action-btn" onClick={() => window.location.href = '/users'}>
             <span className="action-icon">👥</span>
-            <span>Сотрудники</span>
+            <span>{t('dashboard.employees')}</span>
           </button>
           <button className="action-btn" onClick={() => window.location.href = '/departments'}>
             <span className="action-icon">🏢</span>
-            <span>Отделы</span>
+            <span>{t('dashboard.departmentsTitle')}</span>
           </button>
           <button className="action-btn" onClick={() => window.location.href = '/requests'}>
             <span className="action-icon">📝</span>
-            <span>Заявки</span>
+            <span>{t('dashboard.requests')}</span>
           </button>
           <button className="action-btn" onClick={() => window.location.href = '/salary'}>
             <span className="action-icon">💰</span>
-            <span>Зарплата</span>
+            <span>{t('dashboard.salary')}</span>
           </button>
         </div>
       </div>

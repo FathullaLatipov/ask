@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
 import './Pagination.css'
 
 export default function Pagination({ currentPage, totalPages, onPageChange, totalCount, pageSize }) {
+  const { t } = useTranslation()
   if (!totalPages || totalPages <= 1) return null
 
   const getPageNumbers = () => {
@@ -44,7 +46,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
   return (
     <div className="pagination-container">
       <div className="pagination-info">
-        Показано {startItem}-{endItem} из {totalCount}
+        {t('pagination.showing', { start: startItem, end: endItem, total: totalCount })}
       </div>
       <div className="pagination-controls">
         <button
@@ -52,7 +54,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
-          ← Предыдущая
+          ← {t('pagination.previous')}
         </button>
         
         <div className="pagination-numbers">
@@ -76,7 +78,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange, tota
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          Следующая →
+          {t('pagination.next')} →
         </button>
       </div>
     </div>

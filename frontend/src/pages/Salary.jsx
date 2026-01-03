@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createApiClient, getToken } from '../api/client'
 import Pagination from '../components/Pagination'
 import jsPDF from 'jspdf'
@@ -7,6 +8,7 @@ import * as XLSX from 'xlsx'
 import './Salary.css'
 
 export default function Salary() {
+  const { t } = useTranslation()
   const [calculations, setCalculations] = useState([])
   const [users, setUsers] = useState([])
   const [departments, setDepartments] = useState([])
@@ -210,7 +212,7 @@ export default function Salary() {
     
     // Заголовок
     doc.setFontSize(18)
-    doc.text('Расчет заработной платы', 14, 20)
+    doc.text(t('salary.calculationTitle'), 14, 20)
     
     if (filterPeriod) {
       doc.setFontSize(12)
@@ -230,7 +232,7 @@ export default function Salary() {
     ])
     
     autoTable(doc, {
-      head: [['ID', 'Сотрудник', 'Отдел', 'Период', 'Часы', 'Базовая ЗП', 'Штрафы', 'Итого']],
+      head: [[t('salary.id'), t('salary.employee'), t('salary.department'), t('salary.period'), t('salary.hours'), t('salary.baseSalary'), t('salary.penalties'), t('salary.totalAmount')]],
       body: tableData,
       startY: filterPeriod ? 40 : 30,
       styles: { fontSize: 9 },
@@ -243,7 +245,7 @@ export default function Salary() {
     const finalY = doc.lastAutoTable.finalY + 10
     doc.setFontSize(12)
     doc.setFont(undefined, 'bold')
-    doc.text(`Итого: ${formatCurrency(total)}`, 14, finalY)
+    doc.text(`${t('salary.totalLabel')} ${formatCurrency(total)}`, 14, finalY)
     
     doc.save(`Зарплата_${filterPeriod || new Date().toISOString().slice(0, 7)}.pdf`)
   }
@@ -251,7 +253,7 @@ export default function Salary() {
   const exportToExcel = () => {
     // Подготовка данных
     const worksheetData = [
-      ['ID', 'Сотрудник', 'Отдел', 'Период', 'Отработано часов', 'Базовая ЗП', 'Переработки', 'Штрафы', 'Авансы', 'Итого', 'Статус']
+      [t('salary.id'), t('salary.employee'), t('salary.department'), t('salary.period'), t('attendance.hoursWorked'), t('salary.baseSalary'), t('salary.overtimeAmount'), t('salary.penalties'), t('salary.advances'), t('salary.totalAmount'), t('salary.status')]
     ]
     
     calculations.forEach(calc => {
@@ -266,7 +268,7 @@ export default function Salary() {
         calc.penalties_amount || 0,
         calc.advances_amount || 0,
         calc.total_amount || 0,
-        calc.status === 'paid' ? 'Выплачена' : 'Рассчитана',
+        calc.status === 'paid' ? t('salary.paid') : t('salary.calculated'),
       ])
     })
     
@@ -306,7 +308,7 @@ export default function Salary() {
   return (
     <div className="salary-page">
       <div className="page-header">
-        <h2>Заработная плата</h2>
+        <h2>{t('salary.title')}</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
           {calculations.length > 0 && (
             <>
@@ -318,15 +320,12 @@ export default function Salary() {
               </button>
             </>
           )}
-          <button className="refresh-btn" onClick={() => fetchCalculations(currentPage)} disabled={loading}>
-            Обновить
-          </button>
         </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="card">
+      {/* <div className="card">
         <h3>Расчет зарплаты</h3>
         <div className="calculate-form">
           <input
@@ -340,11 +339,11 @@ export default function Salary() {
             {loading ? 'Расчет...' : 'Рассчитать за период'}
           </button>
         </div>
-      </div>
+      </div> */}
 
       <div className="card">
         <div className="filters-section">
-          <h3>История расчетов</h3>
+          <h3>{t('salary.history')}</h3>
           <div className="filters-row">
             <input
               type="month"
@@ -353,7 +352,7 @@ export default function Salary() {
                 setFilterPeriod(e.target.value)
                 setCurrentPage(1)
               }}
-              placeholder="Период"
+              placeholder={t('salary.periodPlaceholder')}
               className="filter-input"
             />
             <select
@@ -364,7 +363,7 @@ export default function Salary() {
               }}
               className="filter-select"
             >
-              <option value="">Все сотрудники</option>
+              <option value="">{t('salary.allUsers')}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.first_name} {user.last_name}
@@ -379,7 +378,7 @@ export default function Salary() {
               }}
               className="filter-select"
             >
-              <option value="">Все отделы</option>
+              <option value="">{t('salary.allDepartments')}</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
                   {dept.name}
@@ -388,27 +387,27 @@ export default function Salary() {
             </select>
             {(filterPeriod || filterUser || filterDept) && (
               <button className="btn btn-secondary" onClick={clearFilters}>
-                Сбросить
+                {t('salary.reset')}
               </button>
             )}
           </div>
         </div>
 
         {loading ? (
-          <div className="placeholder">Загрузка...</div>
+          <div className="placeholder">{t('salary.loading')}</div>
         ) : calculations.length > 0 ? (
           <div className="table-container">
             <div className="table">
               <div className="table-head">
                 <span></span>
-                <span>ID</span>
-                <span>Сотрудник</span>
-                <span>Отдел</span>
-                <span>Период</span>
-                <span>Часы</span>
-                <span>Базовая ЗП</span>
-                <span>Штрафы</span>
-                <span>Итого</span>
+                <span>{t('salary.id')}</span>
+                <span>{t('salary.employee')}</span>
+                <span>{t('salary.department')}</span>
+                <span>{t('salary.period')}</span>
+                <span>{t('salary.hours')}</span>
+                <span>{t('salary.baseSalary')}</span>
+                <span>{t('salary.penalties')}</span>
+                <span>{t('salary.totalAmount')}</span>
               </div>
               {calculations.map((calc) => (
                 <div key={calc.id}>
@@ -436,7 +435,7 @@ export default function Salary() {
                   {expandedRows.has(calc.id) && calc.breakdown && calc.breakdown.length > 0 && (
                     <div className="breakdown-row">
                       <div className="breakdown-content">
-                        <h4>Детализация расчета:</h4>
+                        <h4>{t('salary.breakdown')}</h4>
                         <div className="breakdown-list">
                           {calc.breakdown.map((item, idx) => (
                             <div key={idx} className="breakdown-item">
@@ -457,8 +456,8 @@ export default function Salary() {
         ) : (
           <div className="placeholder">
             {filterPeriod || filterUser || filterDept 
-              ? 'Нет данных за выбранный период' 
-              : 'Нет данных о расчетах. Используйте кнопку "Рассчитать за период" для создания расчетов.'}
+              ? t('salary.noData') 
+              : t('salary.noDataMessage')}
           </div>
         )}
       </div>

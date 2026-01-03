@@ -3,6 +3,24 @@ from django.db import models
 from django.utils import timezone
 
 
+class Company(models.Model):
+    """Модель компании для мультитенантности"""
+    name = models.CharField(max_length=200, verbose_name='Название компании')
+    domain = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name='Домен')
+    is_active = models.BooleanField(default=True, verbose_name='Активна')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        db_table = 'companies'
+        verbose_name = 'Компания'
+        verbose_name_plural = 'Компании'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class UserManager(BaseUserManager):
     def create_user(self, email=None, password=None, **extra_fields):
         if not email and not extra_fields.get('telegram_id'):
@@ -29,7 +47,15 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    telegram_id = models.BigIntegerField(unique=True, null=True, blank=True)
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='employees',
+        null=True,
+        blank=True,
+        verbose_name='Компания'
+    )
+    telegram_id = models.BigIntegerField(null=True, blank=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)
     first_name = models.CharField(max_length=100)
@@ -83,13 +109,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = 'users'
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        # Telegram ID уникален в рамках компании (email уникален глобально для USERNAME_FIELD)
+        constraints = [
+            models.UniqueConstraint(fields=['company', 'telegram_id'], condition=models.Q(telegram_id__isnull=False), name='unique_company_telegram_id'),
+        ]
         indexes = [
-            models.Index(fields=['telegram_id']),
-            models.Index(fields=['email']),
+            models.Index(fields=['company', 'telegram_id']),
+            models.Index(fields=['company', 'email']),
             models.Index(fields=['role']),
             models.Index(fields=['department']),
+            models.Index(fields=['company']),
         ]
 
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
-

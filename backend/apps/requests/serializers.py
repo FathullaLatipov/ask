@@ -13,7 +13,7 @@ class RequestSerializer(serializers.ModelSerializer):
             'amount', 'reason', 'status', 'reviewed_by', 'reviewed_by_name',
             'reviewed_at', 'review_comment', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'status', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'status', 'reviewed_by', 'reviewed_at', 'created_at', 'updated_at']
 
 
 class RequestApproveSerializer(serializers.Serializer):
@@ -21,5 +21,5 @@ class RequestApproveSerializer(serializers.Serializer):
 
 
 class RequestRejectSerializer(serializers.Serializer):
-    comment = serializers.CharField(required=True)
+    comment = serializers.CharField(required=False, allow_blank=True)
 

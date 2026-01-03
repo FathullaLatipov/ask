@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions",
+    "noData": "No data",
+    "total": "Total",
+    "page": "Page",
+    "of": "of"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "attendance": "Attendance",
+    "users": "Users",
+    "salary": "Salary",
+    "requests": "Requests",
+    "departments": "Departments",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "Login",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Login",
+    "error": "Failed to login",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active",
+    "totalDepartments": "Departments",
+    "pendingRequests": "Pending Requests"
+  },
+  "users": {
+    "title": "Users",
+    "addUser": "Add User",
+    "editUser": "Edit User",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "middleName": "Middle Name",
+    "email": "Email",
+    "phone": "Phone",
+    "role": "Role",
+    "department": "Department",
+    "position": "Position",
+    "salaryType": "Salary Type",
+    "hourlyRate": "Hourly Rate",
+    "fixedSalary": "Fixed Salary",
+    "isActive": "Active",
+    "roles": {
+      "employee": "Employee",
+      "manager": "Manager",
+      "admin": "Administrator"
+    },
+    "salaryTypes": {
+      "fixed": "Fixed",
+      "hourly": "Hourly"
+    }
+  },
+  "departments": {
+    "title": "Departments",
+    "addDepartment": "Add Department",
+    "editDepartment": "Edit Department",
+    "name": "Name",
+    "description": "Description",
+    "manager": "Manager",
+    "employees": "Employees",
+    "noManager": "No Manager",
+    "employeesByDepartment": "Number of Employees by Department"
+  },
+  "salary": {
+    "title": "Salary",
+    "calculate": "Calculate for Period",
+    "period": "Period",
+    "user": "User",
+    "allUsers": "All Users",
+    "employee": "Employee",
+    "department": "Department",
+    "baseHours": "Base Hours",
+    "baseAmount": "Base Amount",
+    "overtimeHours": "Overtime",
+    "overtimeAmount": "Overtime Amount",
+    "penalties": "Penalties",
+    "advances": "Advances",
+    "total": "Total",
+    "status": "Status",
+    "calculated": "Calculated",
+    "paid": "Paid",
+    "exportPDF": "Export to PDF",
+    "exportExcel": "Export to Excel",
+    "noData": "No data for selected period"
+  },
+  "requests": {
+    "title": "Requests",
+    "addRequest": "Add Request",
+    "type": "Type",
+    "status": "Status",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "reason": "Reason",
+    "amount": "Amount",
+    "reviewedBy": "Reviewed By",
+    "reviewedAt": "Reviewed At",
+    "types": {
+      "vacation": "Vacation",
+      "sickLeave": "Sick Leave",
+      "dayOff": "Day Off",
+      "advance": "Advance"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "attendance": {
+    "title": "Attendance",
+    "checkin": "Check In",
+    "checkout": "Check Out",
+    "checkinTime": "Check In Time",
+    "checkoutTime": "Check Out Time",
+    "hoursWorked": "Hours Worked",
+    "isLate": "Late",
+    "currentStatus": "Current Status",
+    "history": "History"
+  }
+}
+

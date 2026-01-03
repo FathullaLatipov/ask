@@ -5,6 +5,12 @@ User = get_user_model()
 
 
 class Department(models.Model):
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='departments',
+        verbose_name='Компания'
+    )
     name = models.CharField(max_length=200, verbose_name='Название')
     description = models.TextField(null=True, blank=True, verbose_name='Описание')
     manager = models.ForeignKey(
@@ -22,12 +28,21 @@ class Department(models.Model):
         verbose_name = 'Отдел'
         verbose_name_plural = 'Отделы'
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['company', 'name']),
+        ]
 
     def __str__(self):
         return self.name
 
 
 class WorkSchedule(models.Model):
+    company = models.ForeignKey(
+        'users.Company',
+        on_delete=models.CASCADE,
+        related_name='work_schedules',
+        verbose_name='Компания'
+    )
     name = models.CharField(max_length=100, verbose_name='Название')
     start_time = models.TimeField(verbose_name='Время начала работы')
     end_time = models.TimeField(verbose_name='Время окончания работы')
@@ -41,6 +56,9 @@ class WorkSchedule(models.Model):
         verbose_name = 'График работы'
         verbose_name_plural = 'Графики работы'
         ordering = ['name']
+        indexes = [
+            models.Index(fields=['company']),
+        ]
 
     def __str__(self):
         return self.name

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createApiClient, getToken } from '../api/client'
 import ConfirmModal from '../components/ConfirmModal'
 import Pagination from '../components/Pagination'
 import './Users.css'
 
 export default function Users() {
+  const { t } = useTranslation()
   const [users, setUsers] = useState([])
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(false)
@@ -267,13 +269,10 @@ export default function Users() {
   return (
     <div className="users-page">
       <div className="page-header">
-        <h2>Сотрудники</h2>
+        <h2>{t('users.title')}</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-primary" onClick={handleCreate} disabled={loading}>
-            + Добавить сотрудника
-          </button>
-          <button className="refresh-btn" onClick={fetchUsers} disabled={loading}>
-            Обновить
+            + {t('users.addUser')}
           </button>
         </div>
       </div>
@@ -287,7 +286,7 @@ export default function Users() {
             onChange={(e) => setFilterDept(e.target.value)}
             className="filter-select"
           >
-            <option value="">Все отделы</option>
+            <option value="">{t('users.allDepartments')}</option>
             {departments.map((dept) => (
               <option key={dept.id} value={dept.id}>
                 {dept.name}
@@ -299,17 +298,17 @@ export default function Users() {
             onChange={(e) => setFilterRole(e.target.value)}
             className="filter-select"
           >
-            <option value="">Все роли</option>
-            <option value="employee">Сотрудник</option>
-            <option value="manager">Менеджер</option>
-            <option value="admin">Администратор</option>
+            <option value="">{t('users.allRoles')}</option>
+            <option value="employee">{t('users.roles.employee')}</option>
+            <option value="manager">{t('users.roles.manager')}</option>
+            <option value="admin">{t('users.roles.admin')}</option>
           </select>
           <div className="search-box">
             <div className="search-input-wrapper">
               <span className="search-icon">🔍</span>
               <input
                 type="text"
-                placeholder="Поиск по имени, email, должности..."
+                placeholder={t('users.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -319,77 +318,72 @@ export default function Users() {
         </div>
         {filteredUsers.length !== users.length && (
           <div style={{ marginTop: '8px', color: '#64748b', fontSize: '14px' }}>
-            Найдено: {filteredUsers.length} из {users.length}
+            {t('users.found')}: {filteredUsers.length} {t('users.of')} {users.length}
           </div>
         )}
       </div>
 
       <div className="card">
         {loading ? (
-          <div className="placeholder">Загрузка...</div>
+          <div className="placeholder">{t('users.loading')}</div>
         ) : filteredUsers.length > 0 ? (
-          <div style={{ marginBottom: '12px', color: '#64748b', fontSize: '14px' }}>
-            Найдено: {filteredUsers.length} из {users.length}
-          </div>
-        ) : null}
-        {loading ? (
-          <div className="placeholder">Загрузка...</div>
-        ) : filteredUsers.length > 0 ? (
-          <div className="table-container">
-            <div className="table">
-              <div className="table-head">
-                <span>ID</span>
-                <span>Имя</span>
-                <span>Email</span>
-                <span>Отдел</span>
-                <span>Должность</span>
-                <span>Роль</span>
-                <span>Статус</span>
-                <span>Действия</span>
-              </div>
-              {filteredUsers.map((user) => (
-                <div key={user.id} className="table-row">
-                  <span>{user.id}</span>
-                  <span>
-                    {user.first_name} {user.last_name}
-                  </span>
-                  <span>{user.email || '—'}</span>
-                  <span>
-                    {typeof user.department === 'object' 
-                      ? user.department?.name 
-                      : departments.find(d => d.id === user.department)?.name || '—'}
-                  </span>
-                  <span>{user.position || '—'}</span>
-                  <span>
-                    <span className={`role-badge role-${user.role}`}>{user.role}</span>
-                  </span>
-                  <span>
-                    <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
-                      {user.is_active ? 'Активен' : 'Неактивен'}
-                    </span>
-                  </span>
-                  <span className="actions">
-                    <button 
-                      className="btn-small btn-primary" 
-                      onClick={() => handleEdit(user)}
-                      disabled={loading}
-                    >
-                      Редактировать
-                    </button>
-                    <button 
-                      className="btn-small btn-danger" 
-                      onClick={() => handleDeleteClick(user.id, `${user.first_name} ${user.last_name}`)}
-                      disabled={loading}
-                    >
-                      Удалить
-                    </button>
-                  </span>
-                </div>
-              ))}
+          <div className="table">
+            <div className="table-head">
+              <span>{t('users.id')}</span>
+              <span>{t('users.name')}</span>
+              <span>{t('users.email')}</span>
+              <span>{t('users.department')}</span>
+              <span>{t('users.position')}</span>
+              <span>{t('users.role')}</span>
+              <span>{t('users.status')}</span>
+              <span>{t('common.actions')}</span>
             </div>
+            {filteredUsers.map((user) => (
+              <div key={user.id} className="table-row">
+                <span>{user.id}</span>
+                <span>
+                  {user.first_name} {user.last_name}
+                </span>
+                <span>{user.email || '—'}</span>
+                <span>
+                  {typeof user.department === 'object' 
+                    ? user.department?.name 
+                    : departments.find(d => d.id === user.department)?.name || '—'}
+                </span>
+                <span>{user.position || '—'}</span>
+                <span>
+                  <span className={`role-badge role-${user.role}`}>
+                    {user.role === 'admin' ? t('users.roles.admin') : 
+                     user.role === 'manager' ? t('users.roles.manager') : 
+                     t('users.roles.employee')}
+                  </span>
+                </span>
+                <span>
+                  <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
+                    {user.is_active ? t('users.active') : t('users.inactive')}
+                  </span>
+                </span>
+                <span className="actions" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    className="btn-small btn-primary" 
+                    onClick={() => handleEdit(user)}
+                    disabled={loading}
+                  >
+                    {t('users.edit')}
+                  </button>
+                  <button 
+                    className="btn-small btn-danger" 
+                    onClick={() => handleDeleteClick(user.id, `${user.first_name} ${user.last_name}`)}
+                    disabled={loading}
+                  >
+                    {t('users.delete')}
+                  </button>
+                </span>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="placeholder">Нет сотрудников</div>
+          <div className="placeholder">{t('users.noEmployees')}</div>
         )}
       </div>
 
@@ -410,13 +404,13 @@ export default function Users() {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editingUser ? 'Редактировать сотрудника' : 'Добавить сотрудника'}</h3>
+              <h3>{editingUser ? t('users.editUser') : t('users.addUser')}</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
               <div className="form-row">
                 <div className="form-group">
-                  <label>Email *</label>
+                  <label>{t('users.email')} {t('users.required')}</label>
                   <input
                     type="email"
                     value={formData.email}
@@ -425,7 +419,7 @@ export default function Users() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Пароль {editingUser ? '(оставьте пустым, чтобы не менять)' : '*'}</label>
+                  <label>{t('users.password')} {editingUser ? t('users.passwordHint') : t('users.required')}</label>
                   <input
                     type="password"
                     value={formData.password}
@@ -436,7 +430,7 @@ export default function Users() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Имя *</label>
+                  <label>{t('users.firstName')} {t('users.required')}</label>
                   <input
                     type="text"
                     value={formData.first_name}
@@ -445,7 +439,7 @@ export default function Users() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Фамилия *</label>
+                  <label>{t('users.lastName')} {t('users.required')}</label>
                   <input
                     type="text"
                     value={formData.last_name}
@@ -456,7 +450,7 @@ export default function Users() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Отчество</label>
+                  <label>{t('users.middleName')}</label>
                   <input
                     type="text"
                     value={formData.middle_name}
@@ -464,7 +458,7 @@ export default function Users() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Телефон</label>
+                  <label>{t('users.phone')}</label>
                   <input
                     type="text"
                     value={formData.phone}
@@ -474,12 +468,12 @@ export default function Users() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Отдел</label>
+                  <label>{t('users.department')}</label>
                   <select
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   >
-                    <option value="">Без отдела</option>
+                    <option value="">{t('users.noDepartment')}</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>
                         {dept.name}
@@ -488,7 +482,7 @@ export default function Users() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Должность</label>
+                  <label>{t('users.position')}</label>
                   <input
                     type="text"
                     value={formData.position}
@@ -498,33 +492,33 @@ export default function Users() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Роль *</label>
+                  <label>{t('users.role')} {t('users.required')}</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     required
                   >
-                    <option value="employee">Сотрудник</option>
-                    <option value="manager">Менеджер</option>
-                    <option value="admin">Администратор</option>
+                    <option value="employee">{t('users.roles.employee')}</option>
+                    <option value="manager">{t('users.roles.manager')}</option>
+                    <option value="admin">{t('users.roles.admin')}</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Тип зарплаты *</label>
+                  <label>{t('users.salaryType')} {t('users.required')}</label>
                   <select
                     value={formData.salary_type}
                     onChange={(e) => setFormData({ ...formData, salary_type: e.target.value })}
                     required
                   >
-                    <option value="hourly">Почасовая</option>
-                    <option value="fixed">Фиксированная</option>
+                    <option value="hourly">{t('users.salaryTypes.hourly')}</option>
+                    <option value="fixed">{t('users.salaryTypes.fixed')}</option>
                   </select>
                 </div>
               </div>
               <div className="form-row">
                 {formData.salary_type === 'hourly' ? (
                   <div className="form-group">
-                    <label>Почасовая ставка</label>
+                    <label>{t('users.hourlyRate')}</label>
                     <input
                       type="number"
                       step="0.01"
@@ -534,7 +528,7 @@ export default function Users() {
                   </div>
                 ) : (
                   <div className="form-group">
-                    <label>Фиксированная зарплата</label>
+                    <label>{t('users.fixedSalary')}</label>
                     <input
                       type="number"
                       step="0.01"
@@ -550,16 +544,16 @@ export default function Users() {
                       checked={formData.is_active}
                       onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                     />
-                    Активен
+                    {t('users.isActive')}
                   </label>
                 </div>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Отмена
+                  {t('users.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Сохранение...' : editingUser ? 'Сохранить' : 'Создать'}
+                  {loading ? t('users.saving') : editingUser ? t('users.save') : t('users.create')}
                 </button>
               </div>
             </form>
@@ -571,10 +565,10 @@ export default function Users() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, userId: null, userName: '' })}
         onConfirm={handleDeleteConfirm}
-        title="Удаление сотрудника"
-        message={`Вы уверены, что хотите удалить сотрудника "${deleteConfirm.userName}"? Это действие нельзя отменить.`}
-        confirmText="Удалить"
-        cancelText="Отмена"
+        title={t('users.deleteConfirm')}
+        message={t('users.deleteMessage', { name: deleteConfirm.userName })}
+        confirmText={t('users.deleteButton')}
+        cancelText={t('users.cancel')}
       />
     </div>
   )

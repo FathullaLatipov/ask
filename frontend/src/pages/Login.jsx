@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { createApiClient, setToken } from '../api/client'
 import './Login.css'
 
 export default function Login() {
+  const { t } = useTranslation()
   // Значения по умолчанию для быстрого тестирования
   const [email, setEmail] = useState('admin@gmail.com')
   const [password, setPassword] = useState('admin')
@@ -39,32 +41,32 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>Employee Management</h1>
-        <p className="subtitle">Войдите в систему</p>
+        <h1>{t('login.title')}</h1>
+        <p className="subtitle">{t('login.subtitle')}</p>
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label>Email</label>
+            <label>{t('login.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="user@example.com"
+              placeholder={t('login.emailPlaceholder')}
               required
             />
           </div>
           <div className="form-group">
-            <label>Пароль</label>
+            <label>{t('login.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={t('login.passwordPlaceholder')}
               required
             />
           </div>
           {error && <div className="error-message">{error}</div>}
           <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? t('login.loggingIn') : t('login.loginButton')}
           </button>
         </form>
       </div>

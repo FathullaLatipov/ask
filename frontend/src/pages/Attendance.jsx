@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createApiClient, getToken } from '../api/client'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import Pagination from '../components/Pagination'
@@ -6,6 +7,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import './Attendance.css'
 
 export default function Attendance() {
+  const { t } = useTranslation()
   const [currentStatus, setCurrentStatus] = useState(null)
   const [history, setHistory] = useState([])
   const [activeUsers, setActiveUsers] = useState([])
@@ -350,9 +352,9 @@ export default function Attendance() {
           const res = await api.post(`/api/attendance/${type}/`, payload)
           
           if (type === 'checkin') {
-            setSuccess(`Приход отмечен в ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`)
+            setSuccess(`${t('attendance.checkinSuccess')} ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`)
           } else {
-            setSuccess(`Уход отмечен в ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`)
+            setSuccess(`${t('attendance.checkoutSuccess')} ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`)
           }
           
           // Немедленно обновляем статус для активации кнопки ухода
@@ -595,10 +597,7 @@ export default function Attendance() {
   return (
     <div className="attendance-page">
       <div className="page-header">
-        <h2>Учет рабочего времени</h2>
-        <button className="refresh-btn" onClick={fetchData} disabled={loading}>
-          Обновить
-        </button>
+        <h2>{t('attendance.title')}</h2>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
@@ -608,7 +607,7 @@ export default function Attendance() {
       <div className="attendance-grid">
         <div className="card">
           <div className="card-header-with-info">
-            <h3>Текущий статус</h3>
+            <h3>{t('attendance.currentStatus')}</h3>
             <div className="info-tooltip" title="Блок показывает ваш текущий статус работы. Если вы отметили приход, здесь отображается время входа и количество отработанных часов в реальном времени. Кнопка 'Отметить приход' активна только если вы еще не отметились сегодня. Кнопка 'Отметить уход' активна только если вы уже отметили приход.">
               ℹ️
             </div>
@@ -616,31 +615,31 @@ export default function Attendance() {
           {currentStatus ? (
             <div className="status-info">
               <div className="status-item">
-                <span>На работе:</span>
+                <span>{t('attendance.onWork')}</span>
                 <strong className={currentStatus.is_checked_in ? 'status-yes' : 'status-no'}>
-                  {currentStatus.is_checked_in ? 'Да' : 'Нет'}
+                  {currentStatus.is_checked_in ? t('attendance.yes') : t('attendance.no')}
                 </strong>
               </div>
               {currentStatus.is_checked_in && currentStatus.checkin_time && (
                 <>
                   <div className="status-item">
-                    <span>Время входа:</span>
+                    <span>{t('attendance.entryTime')}</span>
                     <strong>{formatTimeOnly(currentStatus.checkin_time)}</strong>
                   </div>
                   <div className="status-item">
-                    <span>Отработано:</span>
+                    <span>{t('attendance.worked')}</span>
                     <strong className="work-timer">{getWorkedTime()}</strong>
                   </div>
                 </>
               )}
               {!currentStatus.is_checked_in && (
                 <div className="status-item">
-                  <span>Сегодня еще не отмечен приход</span>
+                  <span>{t('attendance.notCheckedIn')}</span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="placeholder">Загрузка...</div>
+            <div className="placeholder">{t('common.loading')}</div>
           )}
           <div className="action-buttons">
             <button
@@ -648,42 +647,42 @@ export default function Attendance() {
               onClick={() => handleCheck('checkin')}
               disabled={loading || (currentStatus && currentStatus.is_checked_in === true)}
             >
-              {loading ? 'Обработка...' : 'Отметить приход'}
+              {loading ? t('attendance.processing') : t('attendance.checkin')}
             </button>
             <button
               className="btn btn-secondary"
               onClick={() => handleCheck('checkout')}
               disabled={loading || !currentStatus || currentStatus.is_checked_in !== true}
             >
-              {loading ? 'Обработка...' : 'Отметить уход'}
+              {loading ? t('attendance.processing') : t('attendance.checkout')}
             </button>
           </div>
           {currentStatus?.is_checked_in && (
             <div className="current-time">
-              Текущее время: {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {t('attendance.currentTime')} {currentTime.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
           )}
           <div className="info-block">
-            <h4>Как это работает:</h4>
+            <h4>{t('attendance.howItWorks')}</h4>
             <ul>
-              <li><strong>Отметить приход</strong> — нажмите, когда начинаете рабочий день. Кнопка неактивна, если вы уже отметились сегодня.</li>
-              <li><strong>Отметить уход</strong> — нажмите, когда заканчиваете рабочий день. Кнопка активна только после отметки прихода.</li>
-              <li>Система автоматически определяет ваше местоположение (если разрешено) и записывает время.</li>
-              <li>Отработанное время обновляется в реальном времени, пока вы на работе.</li>
+              <li><strong>{t('attendance.checkin')}</strong> — {t('attendance.checkinDescription')}</li>
+              <li><strong>{t('attendance.checkout')}</strong> — {t('attendance.checkoutDescription')}</li>
+              <li>{t('attendance.locationDescription')}</li>
+              <li>{t('attendance.realtimeDescription')}</li>
             </ul>
           </div>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3>Активные сотрудники</h3>
+            <h3>{t('attendance.activeEmployees')}</h3>
             {activeUsers.length > 0 && (
               <div className="search-box">
                 <div className="search-input-wrapper">
                   <span className="search-icon">🔍</span>
                   <input
                     type="text"
-                    placeholder="Поиск по имени, отделу..."
+                    placeholder={t('attendance.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="search-input"
@@ -741,19 +740,19 @@ export default function Attendance() {
                     })}
                   </div>
                 ) : (
-                  <div className="placeholder">Не найдено активных сотрудников</div>
+                  <div className="placeholder">{t('attendance.notFound')}</div>
                 )
               })()}
             </>
           ) : (
-            <div className="placeholder">Нет активных сотрудников</div>
+            <div className="placeholder">{t('attendance.noActiveEmployees')}</div>
           )}
         </div>
       </div>
 
       <div className="card">
         <div className="card-header-with-info">
-          <h3>График отработанных часов (последние 7 дней)</h3>
+          <h3>{t('attendance.chartTitle')}</h3>
           <div className="info-tooltip" title="Диаграмма показывает количество отработанных часов за последние 7 дней. Каждый столбец соответствует одному дню. Если в какой-то день не было отметки ухода, часы не отображаются. График помогает отслеживать регулярность работы и общее количество отработанного времени.">
             ℹ️
           </div>
@@ -769,37 +768,37 @@ export default function Attendance() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="placeholder">Нет данных для графика</div>
+          <div className="placeholder">{t('attendance.noChartData')}</div>
         )}
         <div className="info-block">
-          <h4>О диаграмме:</h4>
+          <h4>{t('attendance.aboutChart')}</h4>
           <ul>
-            <li>Показывает количество отработанных часов за последние 7 дней</li>
-            <li>Каждый столбец соответствует одному дню</li>
-            <li>Если в день не было отметки ухода, часы не отображаются</li>
-            <li>График помогает отслеживать регулярность работы и общее количество отработанного времени</li>
-            <li>Наведите курсор на столбец, чтобы увидеть точное количество часов</li>
+            <li>{t('attendance.chartPoint1')}</li>
+            <li>{t('attendance.chartPoint2')}</li>
+            <li>{t('attendance.chartPoint3')}</li>
+            <li>{t('attendance.chartPoint4')}</li>
+            <li>{t('attendance.chartPoint5')}</li>
           </ul>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3>История посещений</h3>
+          <h3>{t('attendance.historyTitle')}</h3>
           <div className="date-filters">
             <input
               type="date"
               value={filterStartDate}
               onChange={(e) => setFilterStartDate(e.target.value)}
               className="date-filter"
-              placeholder="С"
+              placeholder={t('attendance.from')}
             />
             <input
               type="date"
               value={filterEndDate}
               onChange={(e) => setFilterEndDate(e.target.value)}
               className="date-filter"
-              placeholder="По"
+              placeholder={t('attendance.to')}
             />
             {(filterStartDate || filterEndDate) && (
               <button
@@ -809,7 +808,7 @@ export default function Attendance() {
                   setFilterEndDate('')
                 }}
               >
-                Сбросить
+                {t('attendance.reset')}
               </button>
             )}
           </div>
@@ -818,12 +817,12 @@ export default function Attendance() {
           <div className="table-container">
             <div className="table">
               <div className="table-head">
-                <span>ID</span>
-                <span>Сотрудник</span>
-                <span>Вход</span>
-                <span>Выход</span>
-                <span>Часы</span>
-                <span>Опоздание</span>
+                <span>{t('attendance.id')}</span>
+                <span>{t('attendance.employee')}</span>
+                <span>{t('attendance.entry')}</span>
+                <span>{t('attendance.exit')}</span>
+                <span>{t('attendance.hours')}</span>
+                <span>{t('attendance.late')}</span>
               </div>
               {history.map((item) => (
                 <div key={item.id} className="table-row">
@@ -837,14 +836,14 @@ export default function Attendance() {
                   <span>{formatTime(item.checkout_time)}</span>
                   <span>{formatHours(item.total_hours)}</span>
                   <span className={item.is_late ? 'late' : ''}>
-                    {item.is_late ? `Да (${item.late_minutes} мин)` : 'Нет'}
+                    {item.is_late ? `${t('attendance.yes')} (${item.late_minutes} ${t('attendance.lateMinutes')})` : t('attendance.no')}
                   </span>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="placeholder">История пуста</div>
+          <div className="placeholder">{t('attendance.emptyHistory')}</div>
         )}
       </div>
 
@@ -865,14 +864,15 @@ export default function Attendance() {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: '', onConfirm: null })}
         onConfirm={confirmModal.onConfirm}
-        title={confirmModal.type === 'checkin' ? 'Отметить приход' : 'Отметить уход'}
+        title={confirmModal.type === 'checkin' ? t('attendance.checkinConfirm') : t('attendance.checkoutConfirm')}
         message={
           confirmModal.type === 'checkin'
-            ? 'Вы уверены, что хотите отметить приход?'
-            : 'Вы уверены, что хотите отметить уход?'
+            ? t('attendance.checkinConfirmMessage')
+            : t('attendance.checkoutConfirmMessage')
         }
-        confirmText={confirmModal.type === 'checkin' ? 'Отметить приход' : 'Отметить уход'}
-        cancelText="Отмена"
+        confirmText={confirmModal.type === 'checkin' ? t('attendance.checkinConfirm') : t('attendance.checkoutConfirm')}
+        cancelText={t('common.cancel')}
+        confirmButtonStyle={confirmModal.type === 'checkin' ? 'primary' : 'danger'}
       />
     </div>
   )

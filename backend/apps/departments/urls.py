@@ -1,17 +1,15 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import DepartmentViewSet, WorkScheduleViewSet
-
-router = DefaultRouter()
-router.register(r'', DepartmentViewSet, basename='department')
+from django.urls import path
+from .views import (
+    DepartmentListCreateView, DepartmentRetrieveUpdateDestroyView,
+    WorkScheduleListCreateView, WorkScheduleRetrieveUpdateDestroyView
+)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    # Departments
+    path('', DepartmentListCreateView.as_view(), name='department-list-create'),
+    path('<int:pk>/', DepartmentRetrieveUpdateDestroyView.as_view(), name='department-detail'),
+    
+    # Work schedules
+    path('work-schedules/', WorkScheduleListCreateView.as_view(), name='work-schedule-list-create'),
+    path('work-schedules/<int:pk>/', WorkScheduleRetrieveUpdateDestroyView.as_view(), name='work-schedule-detail'),
 ]
-
-# Work schedules
-urlpatterns += [
-    path('work-schedules/', WorkScheduleViewSet.as_view({'get': 'list', 'post': 'create'}), name='work-schedule-list'),
-    path('work-schedules/<int:pk>/', WorkScheduleViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='work-schedule-detail'),
-]
-

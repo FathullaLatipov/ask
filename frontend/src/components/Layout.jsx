@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { removeToken } from '../api/client'
+import LanguageSwitcher from './LanguageSwitcher'
 import './Layout.css'
 
 export default function Layout({ children }) {
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const token = localStorage.getItem('token')
@@ -66,12 +69,12 @@ export default function Layout({ children }) {
   }
 
   const navItems = [
-    { path: '/', label: 'Главная', icon: '📊' },
-    { path: '/attendance', label: 'Посещаемость', icon: '⏰' },
-    { path: '/users', label: 'Сотрудники', icon: '👥' },
-    { path: '/salary', label: 'Зарплата', icon: '💰' },
-    { path: '/requests', label: 'Заявки', icon: '📝' },
-    { path: '/departments', label: 'Отделы', icon: '🏢' },
+    { path: '/', label: t('nav.dashboard'), icon: '📊' },
+    { path: '/attendance', label: t('nav.attendance'), icon: '⏰' },
+    { path: '/users', label: t('nav.users'), icon: '👥' },
+    { path: '/salary', label: t('nav.salary'), icon: '💰' },
+    { path: '/requests', label: t('nav.requests'), icon: '📝' },
+    { path: '/departments', label: t('nav.departments'), icon: '🏢' },
   ]
 
   return (
@@ -118,7 +121,7 @@ export default function Layout({ children }) {
         </nav>
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout}>
-            Выйти
+            {t('nav.logout')}
           </button>
         </div>
       </aside>
@@ -128,25 +131,10 @@ export default function Layout({ children }) {
             <button className="menu-toggle" onClick={() => setSidebarOpen(true)}>
               ☰
             </button>
-            <h1>Dashboard</h1>
+            <h1>{t('dashboard.title')}</h1>
           </div>
           <div className="header-actions">
-            <a
-              href="http://127.0.0.1:8000/swagger/"
-              target="_blank"
-              rel="noreferrer"
-              className="header-link"
-            >
-              Swagger
-            </a>
-            <a
-              href="http://127.0.0.1:8000/redoc/"
-              target="_blank"
-              rel="noreferrer"
-              className="header-link"
-            >
-              Redoc
-            </a>
+            <LanguageSwitcher />
           </div>
         </header>
         <div className="dashboard-content">{children}</div>

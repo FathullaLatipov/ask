@@ -1,24 +1,23 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import status, generics
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from config.mixins import TenantFilterMixin
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     LoginSerializer, TelegramAuthSerializer
 )
 from rest_framework.authtoken.models import Token
-import jwt
-from django.conf import settings
 
 User = get_user_model()
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserListCreateView(TenantFilterMixin, generics.ListCreateAPIView):
+    """Список и создание пользователей"""
     queryset = User.objects.all()
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['department', 'role', 'is_active']
@@ -27,20 +26,14 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering = ['-id']
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.request.method == 'POST':
             return UserCreateSerializer
-        elif self.action in ['update', 'partial_update']:
-            return UserUpdateSerializer
         return UserSerializer
 
     def get_permissions(self):
-        if self.action == 'me':
+        if self.request.method == 'GET':
             return [IsAuthenticated()]
-        elif self.action in ['list', 'retrieve']:
-            return [IsAuthenticated()]  # Manager и Admin могут видеть список
-        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]
-        return super().get_permissions()
+        return [IsAdminUser()]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -52,16 +45,53 @@ class UserViewSet(viewsets.ModelViewSet):
             if self.request.user.department:
                 return queryset.filter(department=self.request.user.department)
             return queryset.none()
-        # Администраторы видят всех
+        # Администраторы видят всех в своей компании
         return queryset
 
-    @action(detail=False, methods=['get'])
-    def me(self, request):
-        serializer = self.get_serializer(request.user)
+
+class UserRetrieveUpdateDestroyView(TenantFilterMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Детали, обновление и удаление пользователя"""
+    queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return UserUpdateSerializer
+        return UserSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Сотрудники видят только себя
+        if self.request.user.role == 'employee':
+            return queryset.filter(id=self.request.user.id)
+        # Руководители видят свой отдел
+        elif self.request.user.role == 'manager':
+            if self.request.user.department:
+                return queryset.filter(department=self.request.user.department)
+            return queryset.none()
+        # Администраторы видят всех в своей компании
+        return queryset
+
+
+class UserMeView(APIView):
+    """Получить текущего пользователя"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'], permission_classes=[])
-    def login(self, request):
+
+class UserLoginView(APIView):
+    """Авторизация пользователя"""
+    permission_classes = []
+
+    def post(self, request):
         serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
@@ -74,8 +104,12 @@ class UserViewSet(viewsets.ModelViewSet):
             'user': UserSerializer(user).data
         })
 
-    @action(detail=False, methods=['post'], permission_classes=[])
-    def telegram(self, request):
+
+class UserTelegramView(APIView):
+    """Авторизация через Telegram"""
+    permission_classes = []
+
+    def post(self, request):
         serializer = TelegramAuthSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -87,4 +121,3 @@ class UserViewSet(viewsets.ModelViewSet):
             'token': token.key,
             'user': UserSerializer(user).data
         })
-
